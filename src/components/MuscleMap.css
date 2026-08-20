@@ -1,0 +1,289 @@
+.muscle-map {
+  padding: 24px 0;
+  position: relative;
+}
+
+.muscle-map::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-color), transparent);
+}
+
+.muscle-map__header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.muscle-map__header .section-label {
+  justify-content: center;
+}
+
+.muscle-map__header .section-subtitle {
+  margin: 0 auto;
+}
+
+.muscle-map__layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 16px;
+  align-items: start;
+}
+
+.muscle-map__viewer {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 16px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 视角切换标签 */
+.muscle-map__view-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.muscle-map__view-tab {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.muscle-map__view-tab:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(0, 212, 255, 0.3);
+}
+
+.muscle-map__view-tab--active {
+  color: var(--bg-primary);
+  background: var(--accent-gradient);
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+}
+
+.muscle-map__image-wrapper {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.muscle-map__atlas-image {
+  width: 100%;
+  height: auto;
+  max-height: 360px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.muscle-map__full-link {
+  align-self: center;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent-cyan);
+  transition: opacity 0.3s;
+}
+
+.muscle-map__full-link:hover {
+  opacity: 0.8;
+}
+
+.muscle-map__info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.muscle-map__detail {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 14px;
+  border-left: 3px solid var(--group-color, var(--accent-cyan));
+}
+
+.muscle-map__detail-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.muscle-map__detail-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 0 12px currentColor;
+  flex-shrink: 0;
+}
+
+.muscle-map__detail-name {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.muscle-map__detail-description {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+.muscle-map__detail-section {
+  margin-bottom: 0;
+}
+
+.muscle-map__detail-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.muscle-map__detail-muscles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.muscle-map__muscle-tag {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.muscle-map__placeholder {
+  background: var(--bg-card);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius);
+  padding: 20px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.muscle-map__placeholder svg {
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.muscle-map__legend {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 10px;
+}
+
+.muscle-map__legend-title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0 0 8px;
+}
+
+.muscle-map__legend-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.muscle-map__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
+  border-radius: 16px;
+  transition: all 0.25s ease;
+  cursor: pointer;
+}
+
+.muscle-map__legend-item:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--group-color, var(--border-color));
+}
+
+.muscle-map__legend-item--active {
+  color: var(--text-primary);
+  border-color: var(--group-color);
+  background: color-mix(in srgb, var(--group-color) 12%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--group-color) 20%, transparent);
+}
+
+.muscle-map__legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  .muscle-map__layout {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .muscle-map__info {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .muscle-map__detail,
+  .muscle-map__placeholder {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .muscle-map__legend {
+    width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .muscle-map {
+    padding: 16px 0;
+  }
+
+  .muscle-map__viewer {
+    padding: 12px;
+  }
+
+  .muscle-map__info {
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,226 @@
+{
+  "data": [
+    {
+      "id": "image-001",
+      "title": "人体主要肌肉群图谱",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1754918400000,
+      "canvasData": {
+        "x": 0,
+        "y": 0,
+        "naturalSize": {
+          "width": 1199,
+          "height": 1312
+        }
+      },
+      "devMetadata": {
+        "imageSrc": "assets/muscle-atlas-reference.png"
+      }
+    },
+    {
+      "id": "image-002",
+      "title": "人体主要肌肉群图谱 - 前视图",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1754918400001,
+      "canvasData": {
+        "x": 1400,
+        "y": 0,
+        "naturalSize": {
+          "width": 1920,
+          "height": 2380
+        }
+      },
+      "devMetadata": {
+        "imageSrc": "assets/muscle-atlas-front.jpg"
+      }
+    },
+    {
+      "id": "image-003",
+      "title": "人体主要肌肉群图谱 - 侧视图",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1754918400002,
+      "canvasData": {
+        "x": 3400,
+        "y": 0,
+        "naturalSize": {
+          "width": 1920,
+          "height": 2380
+        }
+      },
+      "devMetadata": {
+        "imageSrc": "assets/muscle-atlas-side.jpg"
+      }
+    },
+    {
+      "id": "image-004",
+      "title": "人体主要肌肉群图谱 - 后视图",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1754918400003,
+      "canvasData": {
+        "x": 5400,
+        "y": 0,
+        "naturalSize": {
+          "width": 1920,
+          "height": 2380
+        }
+      },
+      "devMetadata": {
+        "imageSrc": "assets/muscle-atlas-back.jpg"
+      }
+    },
+    {
+      "id": "image-005",
+      "title": "头颈部肌群细节图",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1754918400004,
+      "canvasData": {
+        "x": -36,
+        "y": -96,
+        "naturalSize": {
+          "width": 400,
+          "height": 360
+        }
+      },
+      "devMetadata": {
+        "imageSrc": "assets/muscle-detail/head_neck.jpg"
+      }
+    },
+    {
+      "id": "image-006",
+      "title": "肩背部肌群细节图",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1754918400005,
+      "canvasData": {
+        "x": -36,
+        "y": -96,
+        "naturalSize": {
+          "width": 720,
+          "height": 520
+        }
+      },
+      "devMetadata": {
+        "imageSrc": "assets/muscle-detail/shoulder_back.jpg"
+      }
+    },
+    {
+      "id": "image-007",
+      "title": "胸部肌群细节图",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1754918400006,
+      "canvasData": {
+        "x": -36,
+        "y": -96,
+        "naturalSize": {
+          "width": 480,
+          "height": 480
+        }
+      },
+      "devMetadata": {
+        "imageSrc": "assets/muscle-detail/chest.jpg"
+      }
+    },
+    {
+      "id": "image-008",
+      "title": "手臂肌群细节图",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1754918400007,
+      "canvasData": {
+        "x": -36,
+        "y": -96,
+        "naturalSize": {
+          "width": 960,
+          "height": 800
+        }
+      },
+      "devMetadata": {
+        "imageSrc": "assets/muscle-detail/arm.jpg"
+      }
+    },
+    {
+      "id": "image-009",
+      "title": "核心肌群细节图",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1754918400008,
+      "canvasData": {
+        "x": -36,
+        "y": -96,
+        "naturalSize": {
+          "width": 480,
+          "height": 480
+        }
+      },
+      "devMetadata": {
+        "imageSrc": "assets/muscle-detail/core.jpg"
+      }
+    },
+    {
+      "id": "image-010",
+      "title": "臀部肌群细节图",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1754918400009,
+      "canvasData": {
+        "x": -36,
+        "y": -96,
+        "naturalSize": {
+          "width": 560,
+          "height": 400
+        }
+      },
+      "devMetadata": {
+        "imageSrc": "assets/muscle-detail/hip_glute.jpg"
+      }
+    },
+    {
+      "id": "image-011",
+      "title": "大腿肌群细节图",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1754918400010,
+      "canvasData": {
+        "x": -36,
+        "y": -96,
+        "naturalSize": {
+          "width": 640,
+          "height": 640
+        }
+      },
+      "devMetadata": {
+        "imageSrc": "assets/muscle-detail/thigh.jpg"
+      }
+    },
+    {
+      "id": "image-012",
+      "title": "小腿肌群细节图",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1754918400011,
+      "canvasData": {
+        "x": -36,
+        "y": -96,
+        "naturalSize": {
+          "width": 560,
+          "height": 560
+        }
+      },
+      "devMetadata": {
+        "imageSrc": "assets/muscle-detail/calf.jpg"
+      }
+    }
+  ],
+  "config": {
+    "autoLayout": false,
+    "deviceType": "desktop",
+    "projectName": "动智 AI 运动助手",
+    "designLibrary": null
+  }
+}

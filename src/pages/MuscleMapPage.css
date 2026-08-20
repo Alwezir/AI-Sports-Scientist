@@ -1,0 +1,739 @@
+.mmp-page {
+  padding: 0 0 16px;
+}
+
+/* 页面标题：PageLayout hero 已展示标题，此处隐藏避免重复并节省空间 */
+.mmp-page__intro {
+  display: none;
+}
+
+.mmp-page__main-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+  letter-spacing: 0.5px;
+}
+
+.mmp-page__main-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+  letter-spacing: 2px;
+}
+
+/* 主布局：左侧科普面板 + 右侧图谱 */
+.mmp-page__layout {
+  display: grid;
+  grid-template-columns: 500px 1fr;
+  gap: 16px;
+  align-items: stretch;
+  margin-bottom: 16px;
+  margin-left: 32px;
+  min-height: 0;
+}
+
+/* 左侧科普面板 */
+.mmp-page__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: sticky;
+  top: 80px;
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+
+.mmp-page__panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mmp-page__panel::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+}
+
+.mmp-page__panel::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.mmp-page__detail {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 20px;
+  border-left: 3px solid var(--group-color, var(--accent-cyan));
+}
+
+.mmp-page__detail-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.mmp-page__detail-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  box-shadow: 0 0 14px currentColor;
+  flex-shrink: 0;
+}
+
+.mmp-page__detail-name {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.mmp-page__detail-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* 肌肉细节图（带标注线） */
+.mmp-detail__illustration {
+  background: linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+/* 肩颈部全宽建模截图 + 图例标注 */
+.mmp-detail__illustration--full {
+  padding: 12px;
+}
+
+.mmp-detail__sn-figure {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #0d1117;
+}
+
+.mmp-detail__sn-image {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.mmp-detail__sn-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.mmp-detail__sn-label {
+  position: absolute;
+  transform: translateY(-50%);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.mmp-detail__sn-label--left {
+  left: 1.5%;
+  text-align: left;
+}
+
+.mmp-detail__sn-label--right {
+  right: 1.5%;
+  text-align: left;
+}
+
+.mmp-detail__sn-label-name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* 肩颈肌肉描述列表（位于细节图下方“位置分布”内） */
+.mmp-page__sn-desc-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mmp-page__sn-desc-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 2px solid var(--group-color, var(--border-color));
+  border-radius: 8px;
+}
+
+.mmp-page__sn-desc-name {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.mmp-page__sn-desc-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+/* 科普内容分块 */
+.mmp-page__detail-section {
+  margin-bottom: 16px;
+}
+
+.mmp-page__detail-section:last-of-type {
+  margin-bottom: 0;
+}
+
+.mmp-page__detail-section--warning {
+  background: rgba(235, 77, 75, 0.06);
+  border: 1px solid rgba(235, 77, 75, 0.2);
+  border-radius: 10px;
+  padding: 12px;
+  margin-left: -12px;
+  margin-right: -12px;
+}
+
+.mmp-page__detail-section--tip {
+  background: rgba(0, 212, 255, 0.06);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 10px;
+  padding: 12px;
+  margin-left: -12px;
+  margin-right: -12px;
+}
+
+.mmp-page__detail-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.mmp-page__detail-label--warning {
+  color: #ff6b6b;
+}
+
+.mmp-page__detail-label--tip {
+  color: #4ecdc4;
+}
+
+.mmp-page__detail-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* 包含肌肉列表 */
+.mmp-page__muscle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mmp-page__muscle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border-left: 2px solid var(--group-color, var(--border-color));
+}
+
+.mmp-page__muscle-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.mmp-page__muscle-function {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: right;
+  line-height: 1.4;
+}
+
+/* 推荐训练动作 */
+.mmp-page__exercise-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mmp-page__exercise-item {
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border-left: 2px solid var(--group-color, var(--border-color));
+}
+
+.mmp-page__exercise-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.mmp-page__exercise-desc {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* 要点列表 */
+.mmp-page__bullet-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mmp-page__bullet-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.mmp-page__bullet-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-top: 6px;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.mmp-page__bullet-dot--warning {
+  background: #ff6b6b;
+  box-shadow: 0 0 6px #ff6b6b;
+}
+
+.mmp-page__bullet-item--warning {
+  color: #ff9f9f;
+}
+
+/* 右侧查看器 */
+.mmp-page__viewer {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 16px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+
+.mmp-page__viewer::-webkit-scrollbar {
+  width: 8px;
+}
+
+.mmp-page__viewer::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+}
+
+.mmp-page__viewer::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+/* 视角切换标签 */
+.mmp-page__view-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.mmp-page__view-tab {
+  flex: 1;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.mmp-page__view-tab:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(0, 212, 255, 0.3);
+}
+
+.mmp-page__view-tab--active {
+  color: var(--bg-primary);
+  background: var(--accent-gradient);
+  border-color: transparent;
+  box-shadow: 0 4px 16px rgba(0, 212, 255, 0.3);
+}
+
+.mmp-page__image-wrapper {
+  background: #f5f2ed;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.mmp-page__image-wrapper--interactive {
+  display: grid;
+  place-items: center;
+}
+
+.mmp-page__image-wrapper--interactive > * {
+  grid-area: 1 / 1 / 2 / 2;
+}
+
+.mmp-page__atlas-image {
+  width: auto;
+  height: auto;
+  max-width: min(460px, 100%);
+  max-height: calc(100vh - 280px);
+  display: block;
+  border-radius: 8px;
+}
+
+.mmp-page__atlas-overlay {
+  width: auto;
+  height: auto;
+  max-width: min(460px, 100%);
+  max-height: calc(100vh - 280px);
+  aspect-ratio: 1920 / 2380;
+  display: block;
+  pointer-events: none;
+}
+
+.mmp-page__atlas-overlay .mmp-page__muscle-group {
+  pointer-events: auto;
+}
+
+.mmp-page__muscle-group:hover path {
+  filter: brightness(1.15);
+}
+
+/* 图例 */
+.mmp-page__legend {
+  padding-top: 0;
+  flex-shrink: 0;
+}
+
+.mmp-page__legend-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0 0 8px;
+}
+
+.mmp-page__legend-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mmp-page__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.mmp-page__legend-item:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--group-color, var(--border-color));
+  box-shadow: 0 0 0 1px var(--group-color, transparent);
+}
+
+.mmp-page__legend-item--active {
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--group-color) 12%, transparent);
+  border-color: var(--group-color);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--group-color) 25%, transparent);
+}
+
+.mmp-page__legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.mmp-page__legend-name {
+  white-space: nowrap;
+}
+
+.mmp-page__placeholder {
+  background: var(--bg-card);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius);
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.mmp-page__placeholder svg {
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.mmp-page__related {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.mmp-page__related-link {
+  font-size: 13px;
+  color: var(--accent-cyan);
+  transition: opacity 0.3s;
+}
+
+.mmp-page__related-link:hover {
+  opacity: 0.8;
+}
+
+/* 局部肌肉细节 */
+.mmp-page__details-section {
+  margin-bottom: 32px;
+}
+
+.mmp-page__details-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.mmp-page__details-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.mmp-page__detail-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.mmp-page__detail-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--group-color, var(--border-color));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.mmp-page__detail-card--active {
+  border-color: var(--group-color);
+  box-shadow: 0 0 0 1px var(--group-color), 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.mmp-page__detail-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.mmp-page__detail-card-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.mmp-page__detail-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.mmp-page__detail-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mmp-page__detail-card-muscle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.mmp-page__detail-card-bullet {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* 底部注释 */
+.mmp-page__footer-note {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.mmp-page__footer-slogan {
+  color: var(--text-secondary);
+  font-weight: 500;
+  letter-spacing: 1px;
+}
+
+/* 动画 */
+.animate-in {
+  animation: mmp-fade-in 0.3s ease;
+}
+
+@keyframes mmp-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 响应式 */
+@media (max-width: 1100px) {
+  .mmp-page__layout {
+    grid-template-columns: 420px 1fr;
+  }
+
+  .mmp-page__panel {
+    max-height: calc(100vh - 160px);
+  }
+
+  .mmp-page__atlas-image,
+  .mmp-page__atlas-overlay {
+    max-width: min(420px, 100%);
+    max-height: calc(100vh - 260px);
+  }
+
+  .mmp-page__details-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .mmp-page__layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .mmp-page__panel {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+    order: 2;
+  }
+
+  .mmp-page__viewer {
+    order: 1;
+  }
+
+  .mmp-page__detail,
+  .mmp-page__placeholder {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .mmp-page__main-title {
+    font-size: 22px;
+  }
+
+  .mmp-page__viewer {
+    padding: 12px;
+  }
+
+  .mmp-page__image-wrapper {
+    padding: 10px;
+  }
+
+  .mmp-page__legend-items {
+    gap: 6px;
+  }
+
+  .mmp-page__legend-item {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .mmp-page__details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mmp-page__footer-note {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+}

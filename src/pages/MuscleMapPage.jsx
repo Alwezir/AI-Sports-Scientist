@@ -1,0 +1,671 @@
+﻿import { useState, useRef } from 'react';
+import PageLayout from '../components/PageLayout';
+import './MuscleMapPage.css';
+
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+// 按肌群家族分类的肌肉数据
+const muscleGroups = [
+  {
+    id: 'head_neck', name: '肩颈部肌群', color: '#4a7ab8',
+    description: '肩颈部后侧肌群是连接头、颈、肩、背的核心枢纽，以斜方肌上/中束与三角肌中/后束为核心构成，既负责头颈姿态控制、肩胛骨稳定与活动，也主导肩关节多方向运动。它是久坐人群最易出现肌力失衡、紧张劳损的区域，也是决定肩背形态、影响圆肩/耸肩等体态问题的关键肌群。',
+    location: '上背颈后区域：斜方肌上束、中束纵向分布，覆盖颈后到肩胛间区的表层；肩关节外侧与后侧：三角肌中束、后束包裹肩关节外侧与后方，构成肩部轮廓。',
+    muscles: [
+      { id: 'upper_trapezius', name: '斜方肌上束', function: '上提肩胛骨（耸肩），辅助头颈后仰与向对侧旋转，稳定肩胛骨上端', pos: { x: 21, y: 66 } },
+      { id: 'trapezius', name: '斜方肌中束', function: '后缩肩胛骨（夹背），将肩胛骨向脊柱方向收拢，维持肩胛骨中立', pos: { x: 50, y: 40 } },
+      { id: 'deltoid', name: '三角肌中束', function: '肩关节外展（手臂向两侧抬起），辅助稳定肩关节，决定肩宽', pos: { x: 30, y: 80 } },
+      { id: 'posterior_deltoid', name: '三角肌后束', function: '肩关节后伸与水平外展，辅助外旋，平衡肩前侧肌力', pos: { x: 80, y: 80 } },
+    ],
+    exercises: [
+      { name: '哑铃侧平举', desc: '手肘微屈，双手持哑铃向两侧抬起至与肩同高，缓慢控制下落。核心刺激三角肌中束，是拓宽肩宽、优化头肩比的经典黄金动作。' },
+      { name: '绳索面拉', desc: '绳索调至额头高度，双手拉住绳索向面部两侧拉开，顶峰时肩胛骨向后收紧。同时强化三角肌后束与斜方肌中束，改善圆肩，平衡肩周前后肌力。' },
+      { name: '俯身飞鸟', desc: '上半身俯身与地面平行，双手持哑铃向两侧抬起至与背同高，感受肩后收缩。孤立刺激三角肌后束，精准强化肩后薄弱区域。' },
+      { name: 'Y字伸展', desc: '俯身或俯卧于凳面，手臂呈Y字向上抬起，配合肩胛骨后缩。强化斜方肌中束与后肩，改善肩胛骨前引。' },
+      { name: '斜方肌拉伸', desc: '一手扶头向对侧倾斜，对侧手向下沉肩。放松紧张的斜方肌上束，缓解肩颈僵硬。' },
+    ],
+    effects: ['平衡肩颈前后肌力，改善圆肩、头前伸、耸肩等不良体态', '拓宽肩部轮廓，优化头肩比，打造舒展挺拔的肩背线条', '强化肩胛骨与肩关节稳定性，降低肩峰撞击、肩颈慢性劳损的风险', '放松紧张肌群，缓解久坐导致的上背僵硬、肩颈酸痛不适'],
+    precautions: ['侧平举、飞鸟类动作全程保持肩胛骨下沉，避免耸肩代偿，减少斜方肌上束借力', '后束训练重量不宜过大，重点感受肌肉收缩，禁止用腰背借力甩动器械', '普通人群肩颈训练建议侧重"放松上束、强化中后束"，避免过度训练斜方肌上束导致肩颈显壮', '肩袖已有损伤、肩颈持续疼痛的人群，避免大重量外展动作，优先以轻重量激活稳定为主'],
+    tips: ['好看的肩颈不是"斜方肌越小越好"，核心是肌力均衡。放松紧张的斜方肌上束，强化薄弱的斜方肌中束与三角肌后束，才能同时拥有舒展的体态与流畅的肩颈线条。'],
+  },
+  {
+    id: 'back_muscles', name: '背部肌群', color: '#3a8a6a',
+    description: '背部肌群是覆盖躯干后侧的大型复合肌群，包含斜方肌（上、中、下束）、背阔肌、大圆肌、竖脊肌，承担着躯干稳定、手臂拉拽、脊柱屈伸等关键功能。它既是打造倒三角身材的核心肌群，也是维持挺拔体态、保护腰椎的关键，长期久坐弯腰极易造成背部肌力失衡，引发含胸驼背、腰背酸痛等问题。',
+    location: '颈后至上背表层：斜方肌上束、中束、下束，整片覆盖颈后、肩胛骨区域直至腰背上方；背部两侧大面积扇形肌肉：背阔肌，构成背部下外侧轮廓；肩胛骨下方区域：大圆肌，位于背阔肌上方、肩后深层；脊柱两侧纵向肌群：竖脊肌（深层），沿着整条腰椎、胸椎分布于脊柱两侧。',
+    muscles: [
+      { id: 'trapezius_upper', name: '斜方肌上束', function: '上提肩胛骨，辅助头颈后仰与向对侧旋转，稳定肩胛骨上端', pos: { x: 50, y: 15 } },
+      { id: 'trapezius_middle', name: '斜方肌中束', function: '后缩肩胛骨（夹背），将肩胛骨向脊柱方向收拢，维持肩胛骨中立', pos: { x: 50, y: 30 } },
+      { id: 'trapezius_lower', name: '斜方肌下束', function: '下沉肩胛骨，平衡上束拉力，改善耸肩体态', pos: { x: 50, y: 42 } },
+      { id: 'latissimus_dorsi', name: '背阔肌', function: '肩关节内收、后伸、内旋，手臂向下向后拉的动作核心发力肌', pos: { x: 25, y: 62 } },
+      { id: 'teres_major', name: '大圆肌', function: '辅助肩关节后伸、内收与内旋，各类划船下拉动作中协同背阔肌发力', pos: { x: 40, y: 50 } },
+      { id: 'erector_spinae', name: '竖脊肌', function: '脊柱后伸（挺直腰背），维持躯干直立稳定，防止脊柱过度前屈', pos: { x: 50, y: 78 } },
+    ],
+    exercises: [
+      { name: '引体向上 / 高位下拉', desc: '双手抓握横杆，将身体或重量向下拉动，主要刺激背阔肌，同时调动斜方肌中下束、大圆肌，打造背部宽度。' },
+      { name: '俯身杠铃划船', desc: '俯身保持腰背平直，将杠铃向腹部提拉，全面增厚背部，强化斜方肌中束、大圆肌、背阔肌。' },
+      { name: '直臂下压', desc: '手臂微屈，将横杆由上向下拉动，孤立刺激背阔肌下缘，塑造背阔肌完整轮廓。' },
+      { name: '山羊挺身（背伸）', desc: '俯卧于器械，依靠腰背力量抬起上半身，重点锻炼竖脊肌，强化脊柱稳定性，改善弯腰驼背。' },
+      { name: 'YTWL 激活', desc: '俯身，手臂依次摆出Y/T/W/L姿势向上抬起，针对性激活斜方肌中下束，纠正肩胛骨位置，改善圆肩。' },
+    ],
+    effects: ['打造背部"倒三角"轮廓，优化腰背比例，视觉显瘦', '强化脊柱稳定肌群，改善含胸、驼背、头前伸等不良体态', '提升腰背支撑能力，缓解久坐带来的腰背僵硬、酸痛，保护腰椎', '平衡胸背肌力，改善圆肩造成的肩前紧张，辅助减少肩颈不适'],
+    precautions: ['所有背部训练务必保持腰背中立挺直，不要塌腰、弓背，避免腰椎代偿受伤', '动作优先感受背部肌肉收缩，不要依靠手臂发力拉扯重量', '日常久坐人群，重点强化斜方肌中下束、竖脊肌，同时放松紧张的斜方肌上束', '腰部已有疼痛的人群，减少大重量俯身动作，优先轻量激活、拉伸放松'],
+    tips: ['好看的背部不只是"宽"，更讲究上下均衡。很多人只练背阔肌，忽略斜方肌下束和竖脊肌，依旧会驼背；放松上斜方肌 + 均衡训练全背肌群，才能收获挺拔舒展的体态。'],
+  },
+  {
+    id: 'chest', name: '胸部肌群', color: '#d4834a',
+    description: '胸部肌群是躯干前侧的核心力量肌群，以胸大肌为表层主体，搭配深层的胸小肌与侧胸的前锯肌共同构成。它既是上肢推类动作的核心发力源，也参与呼吸调节、肩胛骨稳定与胸廓支撑，是决定上肢推力与躯干前侧形态的关键肌群。',
+    location: '胸部前侧表层：胸大肌，覆盖胸前大部分区域，构成胸部主体轮廓；胸部深层：胸小肌，藏于胸大肌深面，连接肋骨与肩胛骨；胸廓外侧壁：前锯肌，呈锯齿状贴附于胸侧，连接肋骨与肩胛骨内侧缘。',
+    muscles: [
+      { id: 'pectoralis_major', name: '胸大肌', function: '肩关节内收、内旋与前屈，上肢固定时可上提躯干，辅助用力吸气', pos: { x: 50, y: 30 } },
+      { id: 'pectoralis_minor', name: '胸小肌', function: '下拉并前引肩胛骨，稳定肩胛骨，辅助加深呼吸', pos: { x: 50, y: 52 } },
+      { id: 'serratus_anterior', name: '前锯肌', function: '前伸肩胛骨并辅助上回旋，将肩胛骨紧贴胸廓，避免翼状肩胛', pos: { x: 16, y: 68 } },
+    ],
+    exercises: [
+      { name: '杠铃/哑铃卧推', desc: '平躺于凳面，屈肘下放器械至胸侧，发力推起至手臂微屈。胸部增肌黄金动作，整体强化胸大肌厚度。' },
+      { name: '绳索夹胸', desc: '站姿握住绳索手柄，双臂向胸前合拢挤压，顶峰停顿1秒。侧重刻画胸大肌中缝与肌峰，强化胸部收缩感。' },
+      { name: '标准俯卧撑', desc: '双手略宽于肩，身体呈一条直线，屈肘下落至胸部接近地面。自重经典动作，全范围刺激胸大肌。' },
+      { name: '墙壁天使', desc: '后背贴墙，手臂沿墙面缓慢上下滑动，配合肩胛骨前推。激活前锯肌，改善肩胛骨稳定性。' },
+      { name: '胸小肌筋膜放松', desc: '将筋膜球顶在胸侧腋下前方，缓慢滚动按压。放松紧张的胸小肌，改善含胸体态。' },
+    ],
+    effects: ['强化上肢推力，提升推类动作力量与日常运动表现', '塑造饱满胸部轮廓，优化躯干前侧线条与体态', '稳定肩胛骨与胸廓，改善圆肩、翼状肩胛等不良体态', '辅助强化呼吸辅助肌功能，提升深呼吸效率'],
+    precautions: ['推类动作全程保持肩胛骨下沉收紧，避免耸肩，减少肩峰撞击风险', '卧推时手肘与身体呈45°左右夹角，不要过度外展，保护肩关节', '胸小肌紧张人群建议先放松再训练，避免越练越紧张', '前锯肌训练重点感受肩胛骨的前伸收缩，不要用手臂发力代偿'],
+    tips: ['胸部训练不只是追求"练大"，胸背肌力平衡才是核心。胸肌持续紧张会拉扯肩膀向前，搭配背部肌群同步训练，才能同时兼顾形态美观与体态健康。'],
+  },
+  {
+    id: 'arm', name: '手臂肌群', color: '#8e6aad',
+    description: '手臂肌群是完成肘部屈伸、手部发力的核心肌群，本板块重点介绍肱肌与肱三头肌。它们分别位于手肘前侧深层、上臂后侧，互相配合控制肘关节弯曲与伸直，支撑搬物、推、拉等日常动作，同时决定上臂前后侧线条紧致度，是优化手臂形态的关键。',
+    location: '上臂前侧深层：肱肌，藏在肱二头肌下方，紧贴肱骨下段；上臂后侧整体：肱三头肌，覆盖整条上臂后侧，分为长头、外侧头、内侧头三束。',
+    muscles: [
+      { id: 'brachialis', name: '肱肌', function: '肘关节屈曲（弯手臂），屈肘动作发力占比最大的主力肌肉', pos: { x: 18, y: 42 } },
+      { id: 'triceps_brachii', name: '肱三头肌', function: '肘关节伸直（推、伸手臂），长头辅助肩关节后伸', pos: { x: 18, y: 58 } },
+    ],
+    exercises: [
+      { name: '集中弯举', desc: '哑铃贴紧小臂，弯举发力，重点刺激肱肌，增厚上臂前侧。' },
+      { name: '窄距俯卧撑', desc: '双手间距收窄，发力推起身体，同步强化肱三头肌整体。' },
+      { name: '绳索臂屈伸', desc: '绳索高位固定，手臂向下伸直，孤立刺激肱三头肌，收紧上臂后侧。' },
+      { name: '颈后臂屈伸', desc: '双手持哑铃举过头顶，手肘弯曲下放，再向上伸直，侧重刺激肱三头肌长头。' },
+      { name: '反向弯举', desc: '掌心朝下握住哑铃弯举，优先激活肱肌，均衡前臂与上臂前侧力量。' },
+    ],
+    effects: ['均衡上臂前后肌力，优化手臂整体围度，告别上臂后侧松弛"拜拜肉"', '提升肘关节屈伸力量，改善搬抬、推撑等日常发力能力', '稳定肘关节，减少手肘发力代偿，降低网球肘、肘部劳损风险', '紧致上臂线条，让手臂粗细匀称，视觉上更纤细利落'],
+    precautions: ['弯举、臂屈伸类动作固定大臂，尽量只活动肘关节，不要甩动身体借力', '训练后充分拉伸上臂前后侧，避免肌肉僵硬结块，手臂线条僵硬粗壮', '手肘有旧伤、疼痛人群，降低负重，不要做大幅度负重颈后臂屈伸', '塑形需求优先轻重量多次数，增肌可循序渐进增加负重'],
+    tips: ['想要手臂线条好看，不能只练弯举。肱肌负责撑起手臂厚度，肱三头肌决定后侧紧致度，前后搭配训练，才不容易出现松垮的拜拜肉。'],
+  },
+  {
+    id: 'core', name: '核心肌群', color: '#5a9a4a',
+    description: '核心腹部肌群是躯干稳定的核心结构，由浅至深分为腹直肌、腹外斜肌与腹横肌三层，共同包裹腹腔，既主导躯干前屈、侧屈、旋转等运动，也负责维持腹内压、稳定脊柱与骨盆，是保护腰椎、支撑体态、决定腰腹形态的关键肌群。',
+    location: '腹前壁正中：腹直肌，沿躯干中线纵向分布，构成腹部正面主体；腹部前外侧浅层：腹外斜肌，覆盖侧腰区域，肌纤维呈斜向走行；腹腔最内层：腹横肌，环绕整个腹腔，属于深层核心稳定肌。',
+    muscles: [
+      { id: 'rectus_abdominis', name: '腹直肌', function: '躯干前屈，维持腹内压，保护腹腔脏器，辅助呼气与骨盆后倾', pos: { x: 50, y: 56 } },
+      { id: 'external_oblique', name: '腹外斜肌', function: '单侧收缩躯干侧屈对侧旋转，双侧收缩辅助前屈，维持腹压稳定胸廓骨盆', pos: { x: 20, y: 62 } },
+      { id: 'transverse_abdominis', name: '腹横肌', function: '维持腹内压，稳定脊柱与骨盆，辅助呼气收紧腹腔', pos: { x: 50, y: 76 } },
+    ],
+    exercises: [
+      { name: '标准卷腹', desc: '平躺屈膝，发力抬起上背部至肩胛骨离地，缓慢下落。孤立刺激腹直肌，精准强化腹部前侧力量，避免腰部代偿。' },
+      { name: '俄罗斯转体', desc: '坐姿双腿微抬，躯干交替向左右旋转，可手持负重增加强度。侧重强化腹外斜肌，提升躯干旋转力量与侧腰紧致度。' },
+      { name: '死虫式', desc: '平躺手臂双腿抬起，交替对侧伸展手脚，全程保持腰腹贴地。深层激活腹横肌，强化核心稳定性，适合腰椎不适人群。' },
+      { name: '平板支撑', desc: '手肘与脚尖支撑，身体呈一条直线，全程收紧核心。整体协同强化三块腹肌，提升核心综合稳定能力。' },
+    ],
+    effects: ['增强核心整体力量，提升躯干运动控制能力与日常动作稳定性', '收紧腰腹线条，塑造腹部正面分块与侧腰轮廓，优化腰腹比例', '强化深层核心稳定，减轻腰椎代偿压力，缓解久坐引发的腰部不适', '维持正常腹内压，保护腹腔脏器，辅助改善呼吸与体态'],
+    precautions: ['腹部训练重点在肌肉收缩感，而非动作次数，避免用颈部、腰部借力代偿', '卷腹类动作无需抬起整个背部，肩胛骨离地即可，降低腰椎压力', '腹横肌训练需配合呼吸，发力时呼气收核心，禁止全程憋气', '腰椎已有损伤或疼痛的人群，避免过度做仰卧起坐、大幅度卷腹类动作'],
+    tips: ['清晰的腹肌线条不只是"练"出来的，体脂率是关键前提；而深层的腹横肌才是核心健康的基础，比起追求分块腹肌，先强化深层核心稳定，对体态与腰椎保护的收益更大。'],
+  },
+  {
+    id: 'hip_glute', name: '臀部肌群', color: '#c04060',
+    description: '臀部肌群是连接躯干与下肢的核心动力肌群，本次主要介绍臀大肌与臀中肌（深层）。它们负责髋部屈伸、外展与骨盆稳定，支撑行走、跑跳、上下楼梯等动作，不仅决定臀部外形，还能分担腰部、膝关节压力，久坐很容易造成臀部肌肉"休眠无力"，引发塌臀、腰酸、膝盖代偿疼痛。',
+    location: '臀部表层大块肌肉：臀大肌，构成臀部饱满轮廓；臀大肌上方深层：臀中肌，位于骨盆外侧、臀大肌深面。',
+    muscles: [
+      { id: 'gluteus_maximus', name: '臀大肌', function: '髋关节后伸、外旋，蹬地起身伸髋动作的主力，深蹲臀桥主要发力肌', pos: { x: 50, y: 54 } },
+      { id: 'gluteus_medius', name: '臀中肌（深层）', function: '髋关节外展，行走单腿站立时稳定骨盆，防止骨盆左右倾斜', pos: { x: 26, y: 26 } },
+    ],
+    exercises: [
+      { name: '臀桥', desc: '仰卧屈膝，脚跟发力向上顶髋，顶峰收紧臀部，重点刺激臀大肌，改善臀部扁平。' },
+      { name: '蚌式开合', desc: '侧卧屈膝，膝盖像蚌壳一样向上打开，孤立激活臀中肌，改善骨盆不稳、假性胯宽。' },
+      { name: '罗马尼亚硬拉', desc: '双脚站立，臀部向后推，腰背保持平直，重点拉伸并强化臀大肌后侧。' },
+      { name: '侧卧直腿上抬', desc: '侧卧，下方腿微屈，上方腿伸直向上抬起，深层强化臀中肌。' },
+      { name: '深蹲', desc: '双脚与肩同宽，臀部向后向下坐，同步调动臀大肌与臀中肌，提升臀部整体力量。' },
+    ],
+    effects: ['优化臀部形态，提升臀部紧致度，改善扁平臀、下垂臀', '稳定骨盆，减少腰部、膝关节代偿受力，缓解久坐腰酸', '增强下肢蹬伸力量，提升走路、跑跳的运动表现', '改善膝盖内扣、骨盆歪斜等不良力线，降低下肢运动损伤'],
+    precautions: ['臀部训练优先感受臀部收缩，不要过度弯腰、顶腰，避免腰椎代偿发力', '久坐人群训练前建议先放松髋屈肌，再激活臀部，避免臀部发力感知差', '膝盖不适者，深蹲、硬拉降低下蹲幅度，优先做臀桥、蚌式等低负重动作', '塑形建议轻重量多次数；追求增肌可循序渐进增加负重'],
+    tips: ['很多人练臀没效果，是臀中肌没有激活。臀大肌负责臀部饱满厚度，臀中肌负责臀部上沿轮廓，两块肌肉搭配训练，臀型会更好看，同时还能保护腰和膝盖。'],
+  },
+  {
+    id: 'thigh', name: '大腿肌群', color: '#c04060',
+    description: '大腿肌群是人体力量最强的下肢肌群之一，本板块主要介绍大收肌与腘绳肌（合称）。两组肌肉分别位于大腿内侧、大腿后侧，互相配合完成髋关节活动、膝关节弯曲，承担行走、跑跳、蹲起的发力任务，同时维持下肢力线稳定，和膝盖、骨盆健康密切相关。',
+    location: '大腿内侧深层：大收肌，属于内收肌群中体积最大的一块；大腿后侧整体：腘绳肌（合称），包含股二头肌、半腱肌、半膜肌三块肌肉。',
+    muscles: [
+      { id: 'adductor_magnus', name: '大收肌', function: '髋关节内收，辅助髋关节后伸、内旋，稳定骨盆与膝关节', pos: { x: 30, y: 55 } },
+      { id: 'hamstrings', name: '腘绳肌（合称）', function: '髋关节后伸、膝关节屈曲，与股四头肌互为拮抗肌群', pos: { x: 70, y: 55 } },
+    ],
+    exercises: [
+      { name: '侧卧夹球', desc: '侧卧，双膝之间夹住瑜伽球，发力向内夹紧，重点锻炼大收肌，收紧大腿内侧。' },
+      { name: '罗马尼亚硬拉', desc: '双脚站立，臀部向后折叠，腰背平直，感受大腿后侧拉伸收缩，强化腘绳肌整体。' },
+      { name: '腿弯举', desc: '俯卧于器械，小腿向后弯曲，孤立刺激腘绳肌，提升大腿后侧力量。' },
+      { name: '相扑深蹲', desc: '双脚宽距、脚尖外展下蹲，同步调动大收肌与腘绳肌，兼顾大腿内侧与后侧。' },
+      { name: '坐姿夹腿', desc: '坐姿，发力向内合拢双腿，针对性激活大腿内收肌群，强化大收肌。' },
+    ],
+    effects: ['紧致大腿内侧与后侧，优化大腿整体线条，改善松垮赘肉', '平衡大腿前后肌力，稳定骨盆和膝关节，减少膝盖代偿损伤', '提升下肢后伸、屈膝力量，增强跑跳、蹲起的运动能力', '改善腘绳肌紧张僵硬，缓解弯腰牵拉痛、下腰部不适'],
+    precautions: ['硬拉、深蹲类动作保持腰背挺直，不要弓背，避免腰部代偿', '腘绳肌柔韧性差的人群，训练前后充分拉伸大腿后侧，防止拉伤', '膝盖有旧伤的人，避免大幅度负重腿弯举，优先选择低自重训练', '塑形训练建议轻重量多次数；力量提升可循序渐进增加负重'],
+    tips: ['大腿好看讲究前后内侧均衡，很多人只练大腿前侧，忽略大收肌和腘绳肌，容易肌力失衡。后侧和内侧兼顾训练，腿型会更匀称，还能保护腰和膝盖。'],
+  },
+  {
+    id: 'calf', name: '小腿肌群', color: '#c0a020',
+    description: '小腿肌群是人体站立、行走、跳跃的重要发力肌群，本板块重点介绍腓肠肌、比目鱼肌、胫骨后肌（深层）。腓肠肌与比目鱼肌共同组成小腿后侧的三头肌，负责踮脚蹬地；胫骨后肌藏于小腿深层，管控足弓稳定，三者配合维持站姿平衡，同时决定小腿线条形态，也是容易紧张、酸痛、抽筋的部位。',
+    location: '小腿后侧表层：腓肠肌，我们肉眼看到的小腿"两块肚"；腓肠肌深面：比目鱼肌，宽大扁平，覆盖小腿中下段后侧；小腿深处、胫骨后方：胫骨后肌（深层）。',
+    muscles: [
+      { id: 'gastrocnemius', name: '腓肠肌', function: '踮脚、蹬地，膝关节辅助弯曲，跑跳爆发发力主要依靠腓肠肌', pos: { x: 30, y: 38 } },
+      { id: 'soleus', name: '比目鱼肌', function: '足跖屈（踮脚尖），长时间站立慢走等耐力发力', pos: { x: 30, y: 65 } },
+      { id: 'tibialis_posterior', name: '胫骨后肌（深层）', function: '足跖屈、足内翻，支撑足弓维持足部力线', pos: { x: 75, y: 50 } },
+    ],
+    exercises: [
+      { name: '站姿提踵', desc: '站立，脚跟向上抬起，顶峰停顿，重点锻炼腓肠肌，塑造小腿上半段线条。' },
+      { name: '坐姿提踵', desc: '坐下负重抬脚跟，膝关节弯曲，隔离刺激比目鱼肌，强化小腿下段。' },
+      { name: '足内翻抗阻训练', desc: '弹力带套在前脚掌，发力向内翻脚，激活胫骨后肌，保护足弓。' },
+      { name: '台阶下落拉伸', desc: '前脚掌踩台阶，脚跟缓慢下沉，充分拉伸腓肠肌与比目鱼肌，缓解僵硬。' },
+      { name: '短足训练', desc: '站立，主动收紧足底、抬高足弓，唤醒胫骨后肌，改善扁平足代偿。' },
+    ],
+    effects: ['均衡小腿上下段肌肉形态，优化小腿整体线条，改善萝卜腿、松垮小腿', '强化足底与脚踝稳定性，减少崴脚、足弓塌陷风险', '提升蹬地爆发力与站立耐力，久站不易酸胀疲劳', '放松紧张肌纤维，减少夜间小腿抽筋、跟腱酸痛'],
+    precautions: ['提踵动作控制下落速度，不要猛砸脚跟，保护跟腱', '想要纤细小腿：以拉伸、轻负重多次数为主；想要增粗小腿，可增加负重', '跟腱疼痛人群，减少大重量站姿提踵，优先坐姿训练与拉伸放松', '扁平足人群，重点练习胫骨后肌，不要只练表层小腿肌肉'],
+    tips: ['小腿粗不全是腓肠肌发达，很多是比目鱼肌紧张加上足弓塌陷代偿。表层腓肠肌负责爆发力，深层比目鱼肌负责耐力，胫骨后肌稳住足弓，三块肌肉兼顾训练+拉伸，小腿线条才匀称好看。'],
+  },
+];
+
+const views = [
+  { id: 'front', label: '前视图', imageSrc: `${BASE}/muscle-atlas-front.jpg` },
+  { id: 'back', label: '后视图', imageSrc: `${BASE}/muscle-atlas-back.jpg` },
+];
+
+// 热区坐标基于 1920×2380 的去水印图谱
+const frontHotspots = {
+  head_neck: [
+    'M700,150 Q960,110 1220,150 L1220,400 Q1120,440 1080,540 Q1060,620 1120,680 Q1180,700 1240,660 Q1280,600 1260,520 Q1280,440 1220,400 L1100,380 Q960,340 820,380 L700,400 Q640,440 660,520 Q640,600 680,660 Q740,700 800,680 Q860,620 840,540 Q800,440 700,400Z',
+  ],
+  chest: ['M760,520 Q960,480 1160,520 L1160,900 Q960,940 760,900Z'],
+  arm: [
+    'M520,520 Q660,500 760,560 L760,1220 Q660,1260 520,1220Z',
+    'M1400,520 Q1260,500 1160,560 L1160,1220 Q1260,1260 1400,1220Z',
+  ],
+  core: ['M760,860 Q960,820 1160,860 L1160,1220 Q960,1260 760,1220Z'],
+  thigh: [
+    'M700,1420 Q840,1380 980,1460 L980,1880 Q840,1920 700,1880Z',
+    'M1220,1420 Q1080,1380 940,1460 L940,1880 Q1080,1920 1220,1880Z',
+  ],
+  calf: [
+    'M740,1880 Q860,1840 980,1920 L980,2280 Q860,2320 740,2280Z',
+    'M1180,1880 Q1060,1840 940,1920 L940,2280 Q1060,2320 1180,2280Z',
+  ],
+};
+
+const backHotspots = {
+  head_neck: [
+    'M660,170 Q960,120 1260,170 L1260,420 Q1280,460 1240,490 L1180,470 Q1100,440 1060,420 Q960,400 860,420 Q820,440 740,470 L680,490 Q640,460 660,420Z',
+  ],
+  back_muscles: [
+    'M750,580 Q680,560 620,600 L640,1080 Q740,1100 870,1080 Q875,800 880,580Z',
+    'M1170,580 Q1240,560 1300,600 L1280,1080 Q1180,1100 1070,1080 Q1045,800 1040,580Z',
+    'M860,580 Q960,560 1060,580 L1060,1080 Q960,1110 860,1080Z',
+  ],
+  arm: [
+    'M460,560 Q560,540 620,560 L620,1220 Q560,1260 460,1220Z',
+    'M1460,560 Q1360,540 1300,560 L1300,1220 Q1360,1260 1460,1220Z',
+  ],
+  hip_glute: ['M680,1080 Q960,1040 1240,1080 L1240,1460 Q960,1520 680,1460Z'],
+  thigh: [
+    'M700,1420 Q840,1380 980,1460 L980,1880 Q840,1920 700,1880Z',
+    'M1220,1420 Q1080,1380 940,1460 L940,1880 Q1080,1920 1220,1880Z',
+  ],
+  calf: [
+    'M740,1880 Q860,1840 980,1920 L980,2280 Q860,2320 740,2280Z',
+    'M1180,1880 Q1060,1840 940,1920 L940,2280 Q1060,2320 1180,2280Z',
+  ],
+};
+
+const hotspotsByView = {
+  front: frontHotspots,
+  back: backHotspots,
+};
+
+// 肩颈细节图例标注配色：蓝点/虚线用于白底截图，深蓝名称用于图上标签，亮蓝名称用于暗色面板
+const SN_MARK_COLOR = '#2f7bd9';
+const SN_NAME_DARK = '#1a4f8f';
+const SN_NAME_LIGHT = '#5aa2e8';
+
+// 各肌群细节图配置：网页人体建模图谱全宽截图 + 图例式标注（坐标基于 viewBox 0 0 1920 height）
+// 每组含 front（前视图截图）与 back（后视图背部截图，图谱切到后视图时使用）两套配置
+const modelAnnotations = {
+  head_neck: {
+    front: {
+      imageSrc: `${BASE}/assets/muscle-detail/shoulder_neck_model.jpg`,
+      height: 900,
+      items: [
+        { id: 'sternocleidomastoid', name: '胸锁乳突肌', desc: '位于颈部两侧皮下，起自胸骨柄与锁骨内侧端，止于耳后乳突，是颈部最标志性的浅层肌肉。单侧收缩使头颈侧屈对侧旋转，双侧收缩辅助头部后仰与吸气提胸廓。长期低头会导致持续紧张缩短，是落枕、颈部僵硬的高发肌肉。',
+          dot: { x: 880, y: 250 }, labelEdge: { x: 140, y: 250 }, side: 'left', top: '27%' },
+        { id: 'scalenes', name: '斜角肌(深层肌肉)', desc: '位于颈部两侧深层，分为前、中、后三束，起自颈椎横突止于上部肋骨。侧屈颈部，上提第1、2肋骨辅助吸气，深层稳定颈椎。紧张时会卡压臂丛神经与锁骨下血管，是手臂发麻、胸廓出口综合征的常见诱因。',
+          dot: { x: 1045, y: 285 }, labelEdge: { x: 1825, y: 330 }, side: 'right', top: '36%' },
+        { id: 'deltoid', name: '三角肌前束', desc: '三角肌俗称"虎头肌"，分前、中、后三束共同包裹肩关节。前束位于肩部前侧，主导肩关节屈曲（手臂前举）、内旋与水平内收，辅助外展。是推类动作（俯卧撑、卧推）的主要发力肌，发达的三角肌是塑造宽肩轮廓的核心。',
+          dot: { x: 650, y: 380 }, labelEdge: { x: 110, y: 560 }, side: 'left', top: '62%' },
+      ],
+    },
+    back: {
+      imageSrc: `${BASE}/assets/muscle-detail/shoulder_neck_back_model.jpg`,
+      height: 561,
+      items: [
+        { id: 'sternocleidomastoid', name: '三角肌(中束)', desc: '位于肩关节最外侧，起自肩峰外侧缘，向下止于肱骨三角肌粗隆，是构成肩部宽度的核心肌束。主导肩关节外展（手臂向两侧抬起），辅助稳定肩关节，是决定肩宽的核心肌肉。薄弱会导致肩膀横向维度不足，视觉上头大肩窄；发达则能拉长颈部视觉线条，是"直角肩"观感的重要构成部分。',
+          dot: { x: 480, y: 430 }, labelEdge: { x: 140, y: 270 }, side: 'left', top: '41%' },
+        { id: 'deltoid', name: '三角肌（后束）', desc: '位于肩关节后侧，起自肩胛冈，向前下止于肱骨后侧，是三角肌三束中日常使用最少、最易薄弱的一束。主导肩关节后伸与水平外展（手臂向后打开），辅助肩关节外旋。久坐含胸、推类动作会导致肩前侧紧张、后束薄弱，形成圆肩体态；强化后束能纠正肩膀前引，改善圆肩。',
+          dot: { x: 600, y: 470 }, labelEdge: { x: 290, y: 480 }, side: 'left', top: '83%' },
+        { id: 'upper_trapezius', name: '斜方肌(上束)', desc: '位于上背最上端、颈后两侧，起自枕外隆凸与颈韧带，向外下止于锁骨外侧段与肩峰，是斜方肌最靠上的肌束。上提肩胛骨（耸肩动作），辅助头颈后仰与向对侧旋转。长期伏案低头、精神紧张会导致持续紧张缩短，是肩颈酸痛、肩颈线条臃肿、富贵包观感的主要诱因。',
+          dot: { x: 1050, y: 200 }, labelEdge: { x: 1600, y: 280 }, side: 'right', top: '53%' },
+        { id: 'trapezius', name: '斜方肌(中束)', desc: '位于上背中部、两肩胛骨之间，起自胸椎上段棘突，向外侧止于肩胛骨内侧缘，处于斜方肌上束的正下方。后缩肩胛骨（夹背动作），将肩胛骨向脊柱方向收拢，是肩背深层稳定的核心肌束。久坐含胸会让中束长期被拉长、力量薄弱，是圆肩、翼状肩胛的核心诱因。',
+          dot: { x: 1080, y: 450 }, labelEdge: { x: 1705, y: 450 }, side: 'right', top: '80%' },
+      ],
+    },
+  },
+  back_muscles: {
+    back: {
+      imageSrc: `${BASE}/assets/muscle-detail/back_model.jpg`,
+      height: 1080,
+      items: [
+        { id: 'trapezius_upper', name: '斜方肌上束', desc: '位于上背最上端、颈后两侧，起自枕外隆凸与颈韧带，向外下止于锁骨外侧段与肩峰，是斜方肌最靠上的肌束。上提肩胛骨（耸肩动作），辅助头颈后仰与向对侧旋转。长期伏案低头、精神紧张会导致持续紧张缩短，是肩颈酸痛、肩颈线条臃肿、富贵包观感的主要诱因。',
+          dot: { x: 1070, y: 200 }, labelEdge: { x: 1700, y: 140 }, side: 'right', top: '13%' },
+        { id: 'trapezius_middle', name: '斜方肌中束', desc: '位于上背中部、两肩胛骨之间，起自胸椎上段棘突，向外侧止于肩胛骨内侧缘，处于斜方肌上束的正下方。后缩肩胛骨（夹背动作），将肩胛骨向脊柱方向收拢，是肩背深层稳定的核心肌束。久坐含胸会让中束长期被拉长、力量薄弱，是圆肩、翼状肩胛的核心诱因之一。',
+          dot: { x: 1050, y: 370 }, labelEdge: { x: 1650, y: 380 }, side: 'right', top: '35%' },
+        { id: 'trapezius_lower', name: '斜方肌下束', desc: '位于上背下段，起自胸椎下段棘突，向外下止于肩胛骨内侧缘下半部。下沉肩胛骨，平衡上束拉力，改善耸肩体态。薄弱会导致肩胛骨上抬不受控制，是耸肩体态的重要诱因。',
+          dot: { x: 1090, y: 520 }, labelEdge: { x: 1650, y: 540 }, side: 'right', top: '49%' },
+        { id: 'teres_major', name: '大圆肌', desc: '位于肩胛骨下角外侧，肩背深层，小圆肌下方，紧贴背阔肌上缘。辅助肩关节后伸、内收与内旋，在各类划船、下拉动作中和背阔肌协同发力。大圆肌饱满可以填充腋下后侧空隙，让背部和肩部衔接线条更流畅。',
+          dot: { x: 620, y: 680 }, labelEdge: { x: 140, y: 300 }, side: 'left', top: '28%' },
+        { id: 'latissimus_dorsi', name: '背阔肌', desc: '人体面积最大的扁肌，分布于背部左右两侧，呈宽大扇形，起自胸腰筋膜、髂嵴等处，向上止于肱骨。主导肩关节内收、后伸、内旋，是引体向上、划船的主要发力肌。背阔肌是打造"倒三角"体型的关键，发达后能收紧腰背部、拓宽背部视觉宽度。',
+          dot: { x: 750, y: 850 }, labelEdge: { x: 140, y: 850 }, side: 'left', top: '79%' },
+        { id: 'erector_spinae', name: '竖脊肌(深层)', desc: '沿脊柱两侧纵向走行的长条深层肌群，分为多组肌束，贯穿胸、腰段脊柱后侧。主导脊柱后伸（挺直腰背）、维持躯干直立稳定，防止脊柱过度前屈。被称为"腰椎的保护垫"，久坐弯腰会持续拉长、弱化竖脊肌，是腰肌劳损、下背痛的重要诱因。',
+          dot: { x: 960, y: 700 }, labelEdge: { x: 1825, y: 720 }, side: 'right', top: '67%' },
+      ],
+    },
+  },
+  chest: {
+    front: {
+      imageSrc: `${BASE}/assets/muscle-detail/chest_model.jpg`,
+      height: 620,
+      items: [
+        { id: 'pectoralis_major', name: '胸大肌', desc: '覆盖胸前壁的扇形浅层肌肉，按肌束分为锁骨部（上胸）、胸肋部（中胸）、腹部（下胸）。主导肩关节内收、内旋与前屈，是推类动作的核心发力源。长期紧张短缩会拉扯肩部前引，加重圆肩体态。',
+          dot: { x: 880, y: 90 }, labelEdge: { x: 140, y: 190 }, side: 'left', top: '31%' },
+        { id: 'pectoralis_minor', name: '胸小肌(深层肌肉)', desc: '位于胸大肌深面的三角形深层肌肉，起自第3~5肋骨前端，止于肩胛骨喙突。下拉并前引肩胛骨，是圆肩、翼状肩胛的重要诱因。过度紧张还可能卡压神经血管，引发手臂发麻。',
+          dot: { x: 1200, y: 165 }, labelEdge: { x: 1825, y: 120 }, side: 'right', top: '19%' },
+        { id: 'serratus_anterior', name: '前锯肌', desc: '贴附于胸廓外侧壁，肌束呈锯齿状排列，又称"拳击手肌"。前伸肩胛骨并辅助上回旋，将肩胛骨紧贴胸廓。薄弱会导致翼状肩胛，发达则能勾勒清晰侧胸线条。',
+          dot: { x: 775, y: 350 }, labelEdge: { x: 140, y: 420 }, side: 'left', top: '68%' },
+      ],
+    },
+  },
+  arm: {
+    front: {
+      imageSrc: `${BASE}/assets/muscle-detail/arm_model.jpg`,
+      height: 820,
+      items: [
+        { id: 'biceps_brachii', name: '肱二头肌', desc: '位于上臂前侧浅层，因拥有长头、短头两个肌束得名。长头起自肩胛骨盂上结节，短头起自喙突，止于桡骨粗隆。主导肘关节屈曲，同时可使前臂旋后（手心向上翻转）；长头还可辅助肩关节前屈。是大众认知度最高的手臂肌肉，直接决定上臂前侧线条与饱满度。',
+          dot: { x: 620, y: 250 }, labelEdge: { x: 140, y: 310 }, side: 'left', top: '38%' },
+
+        { id: 'brachialis', name: '旋前圆肌', desc: '位于前臂近端前内侧，属于前臂前群浅层肌肉，起自肱骨内上髁与尺骨冠状突，肌纤维斜向外下方走行，止于桡骨中段外侧。主要负责前臂旋前（手心向下翻转），同时可辅助完成肘关节轻度屈曲。长期伏案握鼠标、反复手部扭转易导致紧张劳损，是引发前臂内侧酸痛、"鼠标手"不适的常见诱因。',
+          dot: { x: 500, y: 490 }, labelEdge: { x: 140, y: 520 }, side: 'left', top: '63%' },
+      ],
+    },
+    back: {
+      imageSrc: `${BASE}/assets/muscle-detail/arm_back_model.jpg`,
+      height: 820,
+      items: [
+        { id: 'brachialis', name: '肱肌', desc: '位于肱二头肌深面，上臂下半段前侧，起自肱骨下半段前面，止于尺骨粗隆。核心功能是肘关节屈曲（弯手臂），它才是屈肘动作里发力占比最大的主力肌肉，力量大于肱二头肌。肱肌增厚可以撑起上臂围度，让手臂正面看起来更饱满。',
+          dot: { x: 580, y: 240 }, labelEdge: { x: 140, y: 340 }, side: 'left', top: '41%' },
+        { id: 'triceps_brachii', name: '肱三头肌', desc: '占据上臂后侧绝大部分面积，包含长头、外侧头、内侧头三个肌束，向下汇聚为共同肌腱，止于尺骨鹰嘴（手肘后侧骨突）。主导肘关节伸直（推、伸手臂动作），长头还可辅助肩关节后伸。上臂后侧松弛、拜拜肉明显，大多是肱三头肌松弛无力造成。',
+          dot: { x: 670, y: 240 }, labelEdge: { x: 140, y: 600 }, side: 'left', top: '70%' },
+      ],
+    },
+  },
+  core: {
+    front: {
+      imageSrc: `${BASE}/assets/muscle-detail/core_model.jpg`,
+      height: 520,
+      items: [
+        { id: 'external_oblique', name: '腹外斜肌', desc: '位于腹部前外侧浅层，为宽阔的扁肌，肌纤维从外上向内下斜向走行，左右两侧呈交叉状分布。单侧收缩使躯干侧屈对侧旋转，双侧收缩辅助前屈。是"人鱼线""腰窝"的构成肌肉，决定腰腹侧面线条与腰线形态。',
+          dot: { x: 795, y: 175 }, labelEdge: { x: 140, y: 260 }, side: 'left', top: '50%' },
+        { id: 'rectus_abdominis', name: '腹直肌', desc: '位于腹前壁正中线两侧，为上宽下窄的长条状肌肉，被3~4条横行腱划分隔，是"八块腹肌""马甲线"的解剖基础，起自耻骨联合，止于胸骨剑突与第5~7肋软骨。主导躯干前屈，维持腹内压，保护腹腔脏器。',
+          dot: { x: 960, y: 90 }, labelEdge: { x: 1825, y: 230 }, side: 'right', top: '44%' },
+        { id: 'transverse_abdominis', name: '腹横肌(深层)', desc: '位于腹部肌群最深处，肌纤维呈水平环绕腹腔分布，如同人体天然的"束腰带"，起自下位肋骨内面、胸腰筋膜与髂嵴，止于腹白线。主要负责维持腹内压，稳定脊柱与骨盆。薄弱是小腹突出、腰椎稳定性差、慢性腰痛的常见诱因。',
+          dot: { x: 960, y: 290 }, labelEdge: { x: 1825, y: 400 }, side: 'right', top: '77%' },
+      ],
+    },
+  },
+  hip_glute: {
+    back: {
+      imageSrc: `${BASE}/assets/muscle-detail/hip_glute_model.jpg`,
+      height: 500,
+      items: [
+        { id: 'gluteus_medius', name: '臀中肌（深层）', desc: '藏在臀大肌上方深处，属于臀部深层稳定肌。核心功能是髋关节外展，行走、单腿站立时稳定骨盆，防止骨盆左右倾斜。臀中肌薄弱是假性胯宽、走路摇摆、膝盖内扣的重要原因；饱满的臀中肌可以撑起臀上沿，优化臀部上翘线条。',
+          dot: { x: 780, y: 30 }, labelEdge: { x: 140, y: 160 }, side: 'left', top: '32%' },
+        { id: 'gluteus_maximus', name: '臀大肌', desc: '臀部体积最大的表层肌肉，起自髂骨、骶骨后侧，向外下方止于股骨后侧。核心功能是髋关节后伸、外旋，是蹬地、起身、伸髋动作的主力，深蹲、臀桥的主要发力肌肉。决定臀部整体饱满度，是打造翘臀的核心；臀大肌无力时，弯腰起身容易借用腰部发力，增加腰肌劳损风险。',
+          dot: { x: 1080, y: 150 }, labelEdge: { x: 1825, y: 250 }, side: 'right', top: '50%' },
+      ],
+    },
+  },
+  thigh: {
+    front: {
+      imageSrc: `${BASE}/assets/muscle-detail/thigh_model.jpg`,
+      height: 580,
+      items: [
+        { id: 'quadriceps', name: '股四头肌(合称)', desc: '位于大腿前侧，因包含股直肌、股内侧肌、股外侧肌、股中间肌4块肌束得名；其中股中间肌为深层肌肉，其余三束表层可见。肌群共同向下汇聚为髌腱，包裹髌骨后止于胫骨粗隆。主导膝关节伸直，是下肢伸膝的唯一动力源；股直肌还可辅助髋关节屈曲。是人体体积最大、力量最强的肌群之一，决定下肢基础力量与大腿前侧维度；强大的股四头肌能稳定膝关节、缓冲关节压力。',
+          dot: { x: 750, y: 180 }, labelEdge: { x: 140, y: 290 }, side: 'left', top: '50%' },
+        {
+          id: 'adductor_longus',
+          name: '长收肌',
+          desc: '位于大腿内侧近端浅层，是大腿内收肌群的标志性肌肉，起自耻骨上支与耻骨联合，肌束斜向外下方走行，止于股骨内侧中段。主要负责大腿内收（双腿向中间夹紧的动作），同时可辅助髋关节屈曲与外旋。是决定大腿内侧紧致度与腿型的关键肌肉，薄弱易引发大腿内侧松弛、膝盖内扣、X型腿倾向。',
+          dot: { x: 1060, y: 90 },
+          labelEdge: { x: 1800, y: 330 },
+          side: 'right',
+          top: '57%'
+        },
+      ],
+    },
+    back: {
+      imageSrc: `${BASE}/assets/muscle-detail/thigh_back_model.jpg`,
+      height: 580,
+      items: [
+        {
+          id: 'adductor_magnus',
+          name: '大收肌',
+          desc: '位于大腿内侧深层，是大腿内收肌群里最大的肌肉，上端连接耻骨、坐骨，下端止于股骨后侧。核心功能是髋关节内收（双腿向内夹紧），同时辅助髋关节后伸、内旋，稳定骨盆与膝关节。大收肌支撑大腿内侧线条，薄弱容易出现大腿内侧松弛；走路、深蹲时稳定下肢，力量不足容易引发膝盖内扣、骨盆不稳。',
+          dot: { x: 899, y: 80 },
+          labelEdge: { x: 140, y: 330 },
+          side: 'left',
+          top: '58%'
+        },
+        { id: 'hamstrings', name: '腘绳肌(合称)', desc: '大腿后侧肌群的统称，由股二头肌、半腱肌、半膜肌共同组成，上端附着坐骨，下端跨过膝关节连接小腿。核心功能是髋关节后伸、膝关节屈曲（屈膝），和大腿前侧股四头肌互为拮抗肌群，一伸一屈控制腿部活动。腘绳肌是跑跳、硬拉、深蹲的重要发力肌；日常弯腰摸脚尖主要靠它拉伸。腘绳肌紧张容易造成下背痛、弯腰受限。',
+          dot: { x: 1160, y: 300 }, labelEdge: { x: 1800, y: 330 }, side: 'right', top: '57%' },
+      ],
+    },
+  },
+  calf: {
+    front: {
+      imageSrc: `${BASE}/assets/muscle-detail/calf_model.jpg`,
+      height: 580,
+      items: [
+        { id: 'gastrocnemius', name: '腓肠肌', desc: '位于小腿后侧最浅层，因有内侧、外侧两个肌头，形似双鱼腹得名；上端起自股骨内外侧髁，向下与比目鱼肌腱汇合为人体最粗壮的跟腱，最终止于跟骨结节。主导踝关节跖屈（踮脚动作），同时可辅助膝关节屈曲；是决定小腿围度与后侧线条的核心肌肉。',
+          dot: { x: 850, y: 180 }, labelEdge: { x: 140, y: 180 }, side: 'left', top: '31%' },
+        { id: 'tibialis_anterior', name: '胫骨前肌', desc: '位于小腿前外侧，沿胫骨外侧缘纵向走行，起自胫骨外侧面，肌腱向下经足内侧，止于内侧楔骨与第一跖骨底。主导踝关节背伸（勾脚尖动作），同时可辅助足内翻；在行走、跑步的落地阶段缓冲减震，维持足弓与踝关节稳定。',
+          dot: { x: 740, y: 260 }, labelEdge: { x: 1825, y: 280 }, side: 'right', top: '48%' },
+        { id: 'soleus', name: '比目鱼肌', desc: '位于腓肠肌深面，因外形扁平似比目鱼得名，起自胫腓骨上端后侧，向下汇入跟腱；与腓肠肌共同组成"小腿三头肌"。负责踝关节跖屈，发力不受膝关节角度影响，核心作用是维持站立时的踝关节稳定，是小腿耐力肌的代表。被称为"人体第二心脏"，收缩时可挤压下肢静脉促进血液回流。',
+          dot: { x: 830, y: 330 }, labelEdge: { x: 140, y: 350 }, side: 'left', top: '60%' },
+      ],
+    },
+    back: {
+      imageSrc: `${BASE}/assets/muscle-detail/calf_back_model.jpg`,
+      height: 580,
+      items: [
+        { id: 'gastrocnemius', name: '腓肠肌', desc: '小腿后侧表层肌肉，分为内侧头、外侧头，跨过膝关节与踝关节，向下汇聚为跟腱连接足跟。核心功能是踮脚、蹬地，膝关节辅助弯曲；跑跳、爆发发力主要依靠腓肠肌。腓肠肌是小腿轮廓最直观的部分，紧张粗壮容易形成萝卜腿；运动后不拉伸极易僵硬、夜间小腿抽筋。',
+          dot: { x: 760, y: 220 }, labelEdge: { x: 140, y: 220 }, side: 'left', top: '38%' },
+        { id: 'soleus', name: '比目鱼肌', desc: '位于腓肠肌下方深层，扁平宽大，只跨过踝关节。核心功能是足跖屈（踮脚尖），主打长时间站立、慢走等耐力发力。长时间久站、走路，疲劳主要来自比目鱼肌；强化并放松它，可以改善小腿下段松垮、酸胀，减轻跟腱压力。',
+          dot: { x: 730, y: 480 }, labelEdge: { x: 140, y: 400 }, side: 'left', top: '68%' },
+        { id: 'tibialis_posterior', name: '胫骨后肌(深层)', desc: '深藏于小腿后侧，胫骨、腓骨之间，肌腱向下绕至足底。核心功能是足跖屈、足内翻，最重要的作用是支撑足弓，维持足部力线。胫骨后肌无力，容易造成足弓塌陷、扁平足，进而引发小腿代偿酸痛、脚踝不稳、膝盖受力异常。',
+          dot: { x: 1150, y: 430 }, labelEdge: { x: 1825, y: 300 }, side: 'right', top: '52%' },
+      ],
+    },
+  },
+};
+
+// 按视图取细节图配置：后视图使用背部建模截图，无背部配置时回退前视图
+function getDetailConfig(groupId, view) {
+  const groupConfig = modelAnnotations[groupId];
+  if (!groupConfig) return null;
+  if (view === 'back' && groupConfig.back) return groupConfig.back;
+  return groupConfig.front;
+}
+
+// 细节图：网页人体建模截图 + 图例式标注（蓝点 + 虚线 + 名称，描述见下方位置分布）
+function MuscleDetailIllustration({ group, view }) {
+  const config = getDetailConfig(group.id, view);
+  if (!config) return null;
+
+  return (
+    <div className="mmp-detail__illustration mmp-detail__illustration--full">
+      <div className="mmp-detail__sn-figure">
+        <img
+          src={config.imageSrc}
+          alt={`${group.name}人体建模细节图（网页图谱截图）`}
+          className="mmp-detail__sn-image"
+        />
+        <svg
+          className="mmp-detail__sn-overlay"
+          viewBox={`0 0 1920 ${config.height}`}
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {config.items.map((a) => (
+            <g key={a.id}>
+              <line
+                x1={a.dot.x}
+                y1={a.dot.y}
+                x2={a.labelEdge.x}
+                y2={a.labelEdge.y}
+                stroke={SN_MARK_COLOR}
+                strokeWidth="3"
+                strokeDasharray="10 7"
+              />
+              <circle cx={a.dot.x} cy={a.dot.y} r="11" fill={SN_MARK_COLOR} stroke="#fff" strokeWidth="3" />
+            </g>
+          ))}
+        </svg>
+        {config.items.map((a) => (
+          <div
+            key={a.id}
+            className={`mmp-detail__sn-label mmp-detail__sn-label--${a.side}`}
+            style={{ top: a.top }}
+          >
+            <span className="mmp-detail__sn-label-name" style={{ color: SN_NAME_DARK }}>{a.name}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function MuscleMapPage() {
+  const [activeGroup, setActiveGroup] = useState(null);
+  const [hoveredGroup, setHoveredGroup] = useState(null);
+  const [currentView, setCurrentView] = useState('front');
+  const detailRef = useRef(null);
+
+  const activeData = activeGroup ? muscleGroups.find((g) => g.id === activeGroup) : null;
+  const currentViewData = views.find((v) => v.id === currentView);
+  const hotspots = hotspotsByView[currentView];
+
+  const handleGroupClick = (groupId) => {
+    setActiveGroup((prev) => (prev === groupId ? null : groupId));
+  };
+
+  const handleViewChange = (viewId) => {
+    setCurrentView(viewId);
+    setActiveGroup(null);
+    setHoveredGroup(null);
+  };
+
+  return (
+    <PageLayout title="人体主要肌肉群图谱" subtitle="科学健身 · 精准训练 · 高效提升">
+      <div className="mmp-page">
+        <div className="mmp-page__intro">
+          <h1 className="mmp-page__main-title">人体主要肌肉群图谱（无性别）</h1>
+          <p className="mmp-page__main-subtitle">科学健身 · 精准训练 · 高效提升</p>
+        </div>
+
+        <div className="mmp-page__layout">
+          <div className="mmp-page__panel" ref={detailRef}>
+            {activeData ? (
+              <div className="mmp-page__detail animate-in">
+                <div className="mmp-page__detail-header">
+                  <span className="mmp-page__detail-dot" style={{ background: activeData.color }} />
+                  <div>
+                    <h3 className="mmp-page__detail-name">{activeData.name}</h3>
+                    <span className="mmp-page__detail-count">{activeData.muscles.length} 块主要肌肉</span>
+                  </div>
+                </div>
+                <MuscleDetailIllustration group={activeData} view={currentView} />
+                <div className="mmp-page__detail-section">
+                  <span className="mmp-page__detail-label">肌群简介</span>
+                  <p className="mmp-page__detail-text">{activeData.description}</p>
+                </div>
+                <div className="mmp-page__detail-section">
+                  <span className="mmp-page__detail-label">位置分布</span>
+                  <p className="mmp-page__detail-text">{activeData.location}</p>
+                  {getDetailConfig(activeData.id, currentView) && (
+                    <ul className="mmp-page__sn-desc-list">
+                      {getDetailConfig(activeData.id, currentView).items.map((a) => (
+                        <li key={a.id} className="mmp-page__sn-desc-item" style={{ '--group-color': activeData.color }}>
+                          <span className="mmp-page__sn-desc-name" style={{ color: SN_NAME_LIGHT }}>{a.name}</span>
+                          <span className="mmp-page__sn-desc-text">{a.desc}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div className="mmp-page__detail-section">
+                  <span className="mmp-page__detail-label">包含肌肉</span>
+                  <div className="mmp-page__muscle-list">
+                    {activeData.muscles.map((m) => (
+                      <div key={m.id} className="mmp-page__muscle-row">
+                        <span className="mmp-page__muscle-name">{m.name}</span>
+                        <span className="mmp-page__muscle-function">{m.function}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="mmp-page__detail-section">
+                  <span className="mmp-page__detail-label">推荐训练动作</span>
+                  <div className="mmp-page__exercise-list">
+                    {activeData.exercises.map((ex, idx) => (
+                      <div key={idx} className="mmp-page__exercise-item">
+                        <span className="mmp-page__exercise-name">{ex.name}</span>
+                        <span className="mmp-page__exercise-desc">{ex.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="mmp-page__detail-section">
+                  <span className="mmp-page__detail-label">训练效果</span>
+                  <ul className="mmp-page__bullet-list">
+                    {activeData.effects.map((effect, idx) => (
+                      <li key={idx} className="mmp-page__bullet-item">
+                        <span className="mmp-page__bullet-dot" style={{ background: activeData.color }} />
+                        {effect}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="mmp-page__detail-section">
+                  <span className="mmp-page__detail-label">注意事项</span>
+                  <ul className="mmp-page__bullet-list">
+                    {activeData.precautions.map((item, idx) => (
+                      <li key={idx} className="mmp-page__bullet-item">
+                        <span className="mmp-page__bullet-dot" style={{ background: activeData.color }} />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                {activeData.tips && activeData.tips.length > 0 && (
+                  <div className="mmp-page__detail-section mmp-page__detail-section--tip">
+                    <span className="mmp-page__detail-label mmp-page__detail-label--tip">小贴士</span>
+                    <p className="mmp-page__detail-text">{activeData.tips[0]}</p>
+                  </div>
+                )}
+                <div className="mmp-page__related">
+                  <a href="/evaluation" className="mmp-page__related-link">在动作评估中查看相关动作 →</a>
+                </div>
+              </div>
+            ) : (
+              <div className="mmp-page__placeholder">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                  <circle cx="24" cy="24" r="20" stroke="var(--border-color)" strokeWidth="2" strokeDasharray="4 4" />
+                  <path d="M24 16v8M24 28v2" stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+                <p>点击右侧人体图谱或图例中的肌群<br />查看肌肉细节图与科普内容</p>
+              </div>
+            )}
+          </div>
+
+          <div className="mmp-page__viewer">
+            <div className="mmp-page__view-tabs">
+              {views.map((view) => (
+                <button key={view.id} className={`mmp-page__view-tab ${currentView === view.id ? 'mmp-page__view-tab--active' : ''}`} onClick={() => handleViewChange(view.id)}>
+                  {view.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="mmp-page__image-wrapper mmp-page__image-wrapper--interactive">
+              <img
+                src={currentViewData.imageSrc}
+                alt={`人体主要肌肉群图谱 - ${currentViewData.label}`}
+                className="mmp-page__atlas-image"
+              />
+              <svg
+                className="mmp-page__atlas-overlay"
+                viewBox="0 0 1920 2380"
+                xmlns="http://www.w3.org/2000/svg"
+                preserveAspectRatio="xMidYMid meet"
+              >
+                <defs>
+                  <filter id="hotspot-glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="8" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+                {muscleGroups.map((group) => {
+                  const paths = hotspots[group.id];
+                  if (!paths) return null;
+                  const isActive = activeGroup === group.id;
+                  const isHovered = hoveredGroup === group.id;
+                  return (
+                    <g key={group.id} className="mmp-page__muscle-group"
+                      onMouseEnter={() => setHoveredGroup(group.id)}
+                      onMouseLeave={() => setHoveredGroup(null)}
+                      onClick={() => handleGroupClick(group.id)}
+                      style={{ cursor: 'pointer' }}>
+                      {paths.map((d, idx) => (
+                        <path key={`${group.id}-${idx}`} d={d}
+                          fill={group.color}
+                          fillOpacity={isActive ? 0.55 : isHovered ? 0.4 : 0.22}
+                          stroke={group.color}
+                          strokeOpacity={isActive ? 0.95 : isHovered ? 0.75 : 0.45}
+                          strokeWidth={isActive ? 3 : 1.5}
+                          filter={isActive ? 'url(#hotspot-glow)' : undefined}
+                          style={{ transition: 'all 0.25s ease' }} />
+                      ))}
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+
+            <div className="mmp-page__legend">
+              <h4 className="mmp-page__legend-title">肌群图例 · 点击图谱或图例查看科普</h4>
+              <div className="mmp-page__legend-items">
+                {muscleGroups.map((group) => (
+                  <button key={group.id}
+                    className={`mmp-page__legend-item ${activeGroup === group.id ? 'mmp-page__legend-item--active' : ''}`}
+                    onClick={() => handleGroupClick(group.id)}
+                    onMouseEnter={() => setHoveredGroup(group.id)}
+                    onMouseLeave={() => setHoveredGroup(null)}
+                    style={{ '--group-color': group.color }}>
+                    <span className="mmp-page__legend-dot" style={{ background: group.color }} />
+                    <span className="mmp-page__legend-name">{group.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mmp-page__footer-note">
+          <p>注：肌肉结构因个体差异而略有不同，训练前请做好热身，避免运动损伤。</p>
+          <p className="mmp-page__footer-slogan">科学健身 · 循序渐进 · 持之以恒</p>
+        </div>
+      </div>
+    </PageLayout>
+  );
+}

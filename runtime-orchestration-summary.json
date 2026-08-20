@@ -1,0 +1,34 @@
+{
+  "project": {
+    "designProjectPath": "c:\\Users\\lenovo\\Desktop\\codex ai sport\\dongzhi-website",
+    "designFile": "dongzhi-website.design",
+    "resolvedLane": "existing_edit_add_comparison",
+    "graphicStrategyGate": "bitmap-first",
+    "textCriticality": "high",
+    "copyDensity": "low",
+    "coreInfoTypes": ["muscle-labels"],
+    "bitmapFirstAllowed": true,
+    "layoutStaticRequired": false,
+    "graphicStrategyRoutingReason": "User wants upper trapezius label moved more laterally and deep neck flexors label kept with note that it is deep/not surface-visible, pointing toward throat/back of cervical spine."
+  },
+  "assets": [
+    {
+      "assetName": "head_neck_detail",
+      "assetType": "image",
+      "targetPath": "c:\\Users\\lenovo\\Desktop\\codex ai sport\\dongzhi-website\\public\\assets\\muscle-detail\\head_neck.jpg",
+      "designNodeName": "head_neck_detail",
+      "purpose": "Head/neck detail with anatomically corrected label positions per user feedback"
+    }
+  ],
+  "contextRequirementsLoaded": [
+    { "path": "shared-runtime/runtime-boundaries/lane-runtime-contracts.md", "readStatus": "loaded", "bodyRead": true },
+    { "path": "shared-runtime/design-artifact-formats/design-file-format.md", "readStatus": "loaded", "bodyRead": true },
+    { "path": "shared-runtime/deterministic-tooling/validate-design-workspace.mjs", "readStatus": "loaded", "bodyRead": true },
+    { "path": "delivery-quality/delivery-evidence-contract.md", "readStatus": "loaded", "bodyRead": true }
+  ],
+  "skillProvenance": {
+    "name": "solo-design",
+    "version": "2026.07.22.00.00.00",
+    "version_source": "skill-release-manifest.json"
+  }
+}

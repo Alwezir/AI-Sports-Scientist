@@ -1,0 +1,105 @@
+{
+  "success": true,
+  "outcome": "passed",
+  "repairable": true,
+  "terminalViolations": [],
+  "terminalBlockingSummary": null,
+  "skillProvenance": {
+    "name": "solo-design",
+    "version": "2026.07.22.00.00.00",
+    "version_source": "skill-release-manifest.json",
+    "runtime_skill_dir": null,
+    "recorded_at": null,
+    "expected_version": "2026.07.22.00.00.00",
+    "status": "matched",
+    "read_status": "ok"
+  },
+  "operatingMode": "free-explore",
+  "renderBlockingErrorCount": 0,
+  "softWarningCount": 1,
+  "renderBlockingErrors": [],
+  "errorSignatures": [],
+  "softWarnings": [
+    "[html-files] No HTML files found in pages/ directory"
+  ],
+  "repairPlanHints": [],
+  "repairActionTable": [],
+  "errorCount": 0,
+  "warningCount": 1,
+  "errors": [],
+  "warnings": [
+    "[html-files] No HTML files found in pages/ directory"
+  ],
+  "validationRunDisciplineStatus": {
+    "declared": false,
+    "restoreMode": false,
+    "maxFullValidationRuns": null,
+    "validationHistoryCount": 0,
+    "repairLedgerCount": 0,
+    "softWarningsTriggerRepair": null,
+    "terminalState": null,
+    "nextAction": null,
+    "violations": [],
+    "success": true
+  },
+  "terminalState": null,
+  "nextCheck": {
+    "type": "finish-readiness",
+    "command": "node \"c:\\Users\\lenovo\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-finish-readiness.mjs\" \"c:\\Users\\lenovo\\Desktop\\codex ai sport\\dongzhi-website\" --check=all",
+    "fullValidationAllowed": false,
+    "reason": "workspace validation passed; run complete finish readiness before final delivery"
+  },
+  "repairBatch": [],
+  "repairContextPacket": {
+    "schema_version": "1.0",
+    "purpose": "small-context repair packet; read this before full validation-report.json",
+    "success": true,
+    "terminalState": null,
+    "skillProvenance": {
+      "name": "solo-design",
+      "version": "2026.07.22.00.00.00",
+      "version_source": "skill-release-manifest.json",
+      "runtime_skill_dir": null,
+      "recorded_at": null,
+      "expected_version": "2026.07.22.00.00.00",
+      "status": "matched",
+      "read_status": "ok"
+    },
+    "renderBlockingErrorCount": 0,
+    "softWarningCount": 1,
+    "renderBlockingErrors": [],
+    "repairActionTable": [],
+    "nextCheck": {
+      "type": "finish-readiness",
+      "command": "node \"c:\\Users\\lenovo\\.trae-cn\\builtin\\design\\default\\skills\\solo-design\\shared-runtime\\deterministic-tooling\\validate-finish-readiness.mjs\" \"c:\\Users\\lenovo\\Desktop\\codex ai sport\\dongzhi-website\" --check=all",
+      "fullValidationAllowed": false,
+      "reason": "workspace validation passed; run complete finish readiness before final delivery"
+    },
+    "forbidden": [
+      "do not read validator source",
+      "do not rerun full validation when nextCheck.fullValidationAllowed=false",
+      "do not start preview/browser unless user explicitly asks",
+      "do not hand-edit repair ledger fields"
+    ]
+  },
+  "projectFileHashes": {
+    "dongzhi-website.design": "f664c47e86b077ef990f411563d52055249a0e8cbdc0a7200293ffe493424c42",
+    "runtime-orchestration-summary.json": "5a153fc0beb775d73665e3e4d21b4bbdbb37479ccd1a0f40fbae5c760402ea71",
+    "assets/muscle-atlas-back.jpg": "df0c062c51eeb51ac430581c056677d41dffa6668d8a3aa0ebe72e320c2ce615",
+    "assets/muscle-atlas-front.jpg": "8bd8fd7b4021ecbb359b34d15fee6d7ce53790f5ec802f2bb7e395fd2b349477",
+    "assets/muscle-atlas-reference.png": "c16f75b79845efe54e8f007b1815b3d59b2853d7563f43adb1ab7d8827ce59e6",
+    "assets/muscle-atlas-side.jpg": "c0707a276438bd178ac0073f18d3da62542849de92461c4982cac8d121ba665c",
+    "assets/muscle-detail/arm.jpg": "0eb6cb133aa5dbdc766f7687d37c472096520b1f012f26f6c120cd17b70fae2f",
+    "assets/muscle-detail/calf.jpg": "6a7db2156188770a0c82a7e1c96fd25c147dd68a641c4704c8f09999c4fae958",
+    "assets/muscle-detail/chest.jpg": "894cb5f43c24827251185b86004f992722b244f90567401da765d85338fcb597",
+    "assets/muscle-detail/core.jpg": "6a3eee14c900ea53d6c02b50329de8ded1b92302dc4d8063e6aaeefc2ccd9f83",
+    "assets/muscle-detail/head_neck.jpg": "7050ac4c28a702386b46e3b2794d65e4802397179de0b3a261e9e443d3ed33a4",
+    "assets/muscle-detail/hip_glute.jpg": "607dbb5fa7fe30e608d41c60bf256ed97123098a8f1403690da7adc16fd201f1",
+    "assets/muscle-detail/shoulder_back.jpg": "a943c3e5da69132fc7a3c7105de4e1d114478f5471eebe83ed83564228d1b052",
+    "assets/muscle-detail/thigh.jpg": "77417501b736953a87d1e65478a0038fc6b5eeb8049e75cf8571536f8becb6ed"
+  },
+  "designDir": "c:\\Users\\lenovo\\Desktop\\codex ai sport\\dongzhi-website",
+  "expectedPages": null,
+  "requireInteractions": null,
+  "checkedAt": "2026-08-16T15:09:50.425Z"
+}

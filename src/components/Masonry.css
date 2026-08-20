@@ -1,0 +1,12 @@
+.masonry-list {
+  position: relative;
+  width: 100%;
+  min-height: 400px;
+}
+
+.masonry-item {
+  position: absolute;
+  will-change: transform, width, height, opacity;
+  top: 0;
+  left: 0;
+}
