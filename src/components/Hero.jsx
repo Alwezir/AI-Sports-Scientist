@@ -1,9 +1,17 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import MagicRings from './MagicRings';
 import './Hero.css';
 
 export default function Hero() {
   const canvasRef = useRef(null);
+
+  const scrollToSection = useCallback((e, sectionId) => {
+    e.preventDefault();
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -173,13 +181,13 @@ export default function Hero() {
           并越来越了解你
         </p>
         <div className="hero__actions">
-          <a href="#features" className="hero__btn hero__btn--primary">
+          <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="hero__btn hero__btn--primary">
             开始体验
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="hero__btn-arrow">
               <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </a>
-          <a href="#pain-points" className="hero__btn hero__btn--secondary">
+          <a href="#pain-points" onClick={(e) => scrollToSection(e, 'pain-points')} className="hero__btn hero__btn--secondary">
             了解更多
           </a>
         </div>

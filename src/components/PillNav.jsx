@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { gsap } from 'gsap';
 import './PillNav.css';
 
@@ -25,6 +26,8 @@ const PillNav = ({
   const mobileMenuRef = useRef(null);
   const navItemsRef = useRef(null);
   const logoRef = useRef(null);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const layout = () => {
@@ -202,13 +205,34 @@ const PillNav = ({
     onMobileMenuClick?.();
   };
 
-  const isExternalLink = href =>
-    href.startsWith('http://') ||
-    href.startsWith('https://') ||
-    href.startsWith('//') ||
-    href.startsWith('mailto:') ||
-    href.startsWith('tel:') ||
-    href.startsWith('#');
+  const handleAnchorClick = (e, href) => {
+    e.preventDefault();
+    const sectionId = href.replace('#', '');
+    const isHomePage = location.pathname === '/' || location.pathname === '';
+    
+    if (isHomePage) {
+      const el = document.getElementById(sectionId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      navigate('/');
+      setTimeout(() => {
+        const el = document.getElementById(sectionId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    }
+    setIsMobileMenuOpen(false);
+  };
+
+  const handleHomeClick = (e) => {
+    e.preventDefault();
+    navigate('/');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setIsMobileMenuOpen(false);
+  };
 
   const cssVars = {
     ['--base']: baseColor,
@@ -222,7 +246,8 @@ const PillNav = ({
       <nav className={`pill-nav ${className}`} aria-label="Primary" style={cssVars}>
         <a
           className="pill-logo"
-          href="#"
+          href="/"
+          onClick={handleHomeClick}
           aria-label="Home"
           onMouseEnter={handleLogoEnter}
           ref={el => {
@@ -259,6 +284,7 @@ const PillNav = ({
                 <a
                   role="menuitem"
                   href={item.href}
+                  onClick={(e) => handleAnchorClick(e, item.href)}
                   className={`pill${activeHref === item.href ? ' is-active' : ''}`}
                   aria-label={item.ariaLabel || item.label}
                   onMouseEnter={() => handleEnter(i)}
@@ -300,8 +326,8 @@ const PillNav = ({
             <li key={item.href || `mobile-item-${i}`}>
               <a
                 href={item.href}
+                onClick={(e) => handleAnchorClick(e, item.href)}
                 className={`mobile-menu-link${activeHref === item.href ? ' is-active' : ''}`}
-                onClick={() => setIsMobileMenuOpen(false)}
               >
                 {item.label}
               </a>

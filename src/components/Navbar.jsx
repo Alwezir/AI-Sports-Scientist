@@ -1,15 +1,45 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import './Navbar.css';
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  const scrollToSection = useCallback((sectionId) => {
+    const isHomePage = location.pathname === '/' || location.pathname === '';
+    
+    if (isHomePage) {
+      const el = document.getElementById(sectionId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      navigate('/');
+      setTimeout(() => {
+        const el = document.getElementById(sectionId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    }
+    setMobileOpen(false);
+  }, [navigate, location.pathname]);
+
+  const handleLogoClick = (e) => {
+    e.preventDefault();
+    navigate('/');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setMobileOpen(false);
+  };
 
   const links = [
     { label: '痛点', href: '#pain-points' },
@@ -21,7 +51,7 @@ export default function Navbar() {
   return (
     <nav className={`navbar ${scrolled ? 'navbar--scrolled' : ''}`}>
       <div className="navbar__inner">
-        <a href="#" className="navbar__logo">
+        <a href="/" onClick={handleLogoClick} className="navbar__logo">
           <span className="navbar__logo-icon">
             <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
               <circle cx="14" cy="14" r="12" stroke="url(#logoGrad)" strokeWidth="2" />
@@ -48,13 +78,30 @@ export default function Navbar() {
 
         <div className="navbar__links">
           {links.map((l) => (
-            <a key={l.href} href={l.href} className="navbar__link">
+            <a
+              key={l.href}
+              href={l.href}
+              onClick={(e) => {
+                e.preventDefault();
+                scrollToSection(l.href.substring(1));
+              }}
+              className="navbar__link"
+            >
               {l.label}
             </a>
           ))}
         </div>
 
-        <a href="#features" className="navbar__cta">开始体验</a>
+        <a
+          href="#features"
+          onClick={(e) => {
+            e.preventDefault();
+            scrollToSection('features');
+          }}
+          className="navbar__cta"
+        >
+          开始体验
+        </a>
 
         <button
           className={`navbar__hamburger ${mobileOpen ? 'navbar__hamburger--open' : ''}`}
@@ -73,13 +120,23 @@ export default function Navbar() {
             <a
               key={l.href}
               href={l.href}
+              onClick={(e) => {
+                e.preventDefault();
+                scrollToSection(l.href.substring(1));
+              }}
               className="navbar__mobile-link"
-              onClick={() => setMobileOpen(false)}
             >
               {l.label}
             </a>
           ))}
-          <a href="#features" className="navbar__mobile-cta" onClick={() => setMobileOpen(false)}>
+          <a
+            href="#features"
+            onClick={(e) => {
+              e.preventDefault();
+              scrollToSection('features');
+            }}
+            className="navbar__mobile-cta"
+          >
             开始体验
           </a>
         </div>
