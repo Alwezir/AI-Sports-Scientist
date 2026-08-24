@@ -40,7 +40,10 @@ export default defineConfig(({ mode }) => {
         target: env.COACH_API_TARGET || 'https://dashscope.aliyuncs.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/coach-api/, '/api/v1'),
-        headers: env.COACH_API_KEY ? { Authorization: `Bearer ${env.COACH_API_KEY}` } : {},
+        headers: {
+          ...(env.COACH_API_KEY ? { Authorization: `Bearer ${env.COACH_API_KEY}` } : {}),
+          ...(env.VITE_COACH_API_KEY ? { Authorization: `Bearer ${env.VITE_COACH_API_KEY}` } : {}),
+        },
       },
     },
   },

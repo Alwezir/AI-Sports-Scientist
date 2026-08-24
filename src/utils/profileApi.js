@@ -1,6 +1,14 @@
+const IS_DEV = import.meta.env.DEV;
+
 const PROFILE_API_BASE = (import.meta.env.VITE_PROFILE_API_BASE || '/profile-api').replace(/\/$/, '');
 const COACH_API_BASE = (import.meta.env.VITE_COACH_API_BASE || '/coach-api').replace(/\/$/, '');
 const COACH_APP_ID = import.meta.env.VITE_COACH_APP_ID || '';
+const COACH_API_KEY = import.meta.env.VITE_COACH_API_KEY || '';
+const COACH_API_TARGET = import.meta.env.VITE_COACH_API_TARGET || 'https://dashscope.aliyuncs.com';
+
+function isAbsoluteUrl(url) {
+  return /^https?:\/\//i.test(url);
+}
 
 function profileUrl(path, query = {}) {
   const url = new URL(`${PROFILE_API_BASE}${path}`, window.location.origin);
@@ -11,9 +19,10 @@ function profileUrl(path, query = {}) {
 }
 
 async function request(url, options = {}) {
+  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   const response = await fetch(url, {
     ...options,
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    headers,
   });
   if (!response.ok) {
     let detail = '';
@@ -31,6 +40,10 @@ async function request(url, options = {}) {
     throw error;
   }
   return response.json();
+}
+
+function coachUrl(path) {
+  return `${COACH_API_BASE}${path}`;
 }
 
 export async function getFullProfile(userId) {
@@ -70,6 +83,34 @@ function toCoachHistory(messages) {
   }));
 }
 
+async function callCoachApi(path, body) {
+  const url = coachUrl(path);
+  const headers = { 'Content-Type': 'application/json' };
+  const usingDirect = !IS_DEV && !isAbsoluteUrl(COACH_API_BASE);
+
+  if (usingDirect && COACH_API_KEY) {
+    headers['Authorization'] = `Bearer ${COACH_API_KEY}`;
+  }
+
+  try {
+    return await request(url, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers,
+    });
+  } catch (firstError) {
+    if (!IS_DEV && !isAbsoluteUrl(COACH_API_BASE) && COACH_API_KEY && COACH_APP_ID) {
+      const fallbackUrl = `${COACH_API_TARGET}/api/v1${path}`;
+      return request(fallbackUrl, {
+        method: 'POST',
+        body: JSON.stringify(body),
+        headers: { ...headers, 'Authorization': `Bearer ${COACH_API_KEY}` },
+      });
+    }
+    throw firstError;
+  }
+}
+
 export async function sendCoachMessage({ userId, sessionId, text, messages, profileSummary }) {
   const messageText = String(text || '').trim();
   if (!messageText) throw new Error('请输入问题后再发送');
@@ -84,13 +125,15 @@ export async function sendCoachMessage({ userId, sessionId, text, messages, prof
     history.length ? `【近期对话】\n${history.map((item) => `${item.role === 'user' ? '用户' : '教练'}：${item.text}`).join('\n')}` : '',
     `【本次问题】\n${messageText}`,
   ].filter(Boolean).join('\n\n');
-  const response = await request(`${COACH_API_BASE}/apps/${encodeURIComponent(COACH_APP_ID)}/completion`, {
-    method: 'POST',
-    body: JSON.stringify({
+
+  const response = await callCoachApi(
+    `/apps/${encodeURIComponent(COACH_APP_ID)}/completion`,
+    {
       input: { prompt },
       parameters: {},
-    }),
-  });
+    }
+  );
+
   return response.output?.text
     || response.output?.choices?.[0]?.message?.content
     || response.output?.choices?.[0]?.text
@@ -112,5 +155,15 @@ export function normalizeRemoteProfile(payload) {
 }
 
 export function isProfileApiConfigured() {
-  return Boolean(import.meta.env.VITE_PROFILE_API_BASE || import.meta.env.DEV);
+  return Boolean(import.meta.env.VITE_PROFILE_API_BASE || IS_DEV);
+}
+
+export function getCoachConfig() {
+  return {
+    appId: COACH_APP_ID,
+    base: COACH_API_BASE,
+    keyConfigured: Boolean(COACH_API_KEY),
+    isDev: IS_DEV,
+    mode: IS_DEV ? 'dev-proxy' : (isAbsoluteUrl(COACH_API_BASE) ? 'proxy' : 'direct'),
+  };
 }

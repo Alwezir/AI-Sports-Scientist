@@ -786,3 +786,46 @@
     transform: translateY(0);
   }
 }
+
+/* Configuration status banner */
+.chat-page__config-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  line-height: 1.5;
+  animation: chat-page__trait-pop 260ms ease-out;
+}
+
+.chat-page__config-banner--error {
+  border: 1px solid rgba(255, 107, 107, 0.4);
+  background: rgba(255, 107, 107, 0.08);
+  color: #ff8a8a;
+}
+
+.chat-page__config-banner svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.chat-page__config-banner strong {
+  display: block;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.chat-page__config-banner p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.chat-page__config-banner code {
+  padding: 1px 6px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: var(--accent-cyan);
+}

@@ -6,7 +6,7 @@ import {
   analyzeAndSaveTraitsFromTurn,
   generateTraitPromptContext,
 } from '../utils/userProfile';
-import { getProfileSummary, sendCoachMessage } from '../utils/profileApi';
+import { getProfileSummary, sendCoachMessage, getCoachConfig } from '../utils/profileApi';
 import PixelBlast from '../components/PixelBlast';
 import './ChatPage.css';
 
@@ -53,6 +53,8 @@ export default function ChatPage() {
   const [profileNotice, setProfileNotice] = useState(false);
   const [clearNotice, setClearNotice] = useState(false);
   const [apiNotice, setApiNotice] = useState(null);
+  const coachConfig = getCoachConfig();
+  const coachUnconfigured = !coachConfig.appId;
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const userIdRef = useRef(null);
@@ -258,6 +260,19 @@ export default function ChatPage() {
     >
       <div className="chat-page">
         <PixelBlast color="#b497cf" pixelSize={4} speed={0.48} />
+        {/* Coach configuration status */}
+        {coachUnconfigured && (
+          <div className="chat-page__config-banner chat-page__config-banner--error" role="alert">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" />
+              <path d="M12 8v4M12 16h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            <div>
+              <strong>AI 教练尚未配置</strong>
+              <p>请在环境变量中设置 <code>VITE_COACH_APP_ID</code>。开发模式下可在 <code>.env.local</code> 中配置，生产环境需在 GitHub Repository Secrets 中添加。</p>
+            </div>
+          </div>
+        )}
         {/* Trait notice toast */}
         {traitNotice && (
           <div className="chat-page__trait-toast" role="status">

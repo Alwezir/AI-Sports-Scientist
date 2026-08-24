@@ -31,6 +31,12 @@ jobs:
         run: npm ci
 
       - name: Build
+        env:
+          VITE_COACH_APP_ID: ${{ secrets.VITE_COACH_APP_ID }}
+          VITE_COACH_API_BASE: ${{ secrets.VITE_COACH_API_BASE }}
+          VITE_COACH_API_KEY: ${{ secrets.VITE_COACH_API_KEY }}
+          VITE_COACH_API_TARGET: ${{ secrets.VITE_COACH_API_TARGET }}
+          VITE_PROFILE_API_BASE: ${{ secrets.VITE_PROFILE_API_BASE }}
         run: npm run build
 
       - name: Upload artifact
