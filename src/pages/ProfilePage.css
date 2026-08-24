@@ -4,6 +4,16 @@
   gap: 0;
 }
 
+.profile-page__api-status {
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  background: rgba(0, 212, 255, 0.05);
+  font-size: 13px;
+}
+
 /* Tabs */
 .profile-page__tabs {
   display: flex;
@@ -83,6 +93,22 @@
   font-size: 16px;
   font-weight: 700;
   margin-bottom: 20px;
+}
+
+.profile-page__section-heading-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.profile-page__section-heading-row .profile-page__section-title {
+  margin-bottom: 20px;
+}
+
+.profile-page__section-meta {
+  color: var(--text-muted);
+  font-size: 12px;
 }
 
 /* Mood */
@@ -427,6 +453,10 @@
   padding: 40px;
   color: var(--text-muted);
   font-size: 14px;
+}
+
+.profile-page__empty--compact {
+  padding: 22px 16px;
 }
 
 /* Data actions */

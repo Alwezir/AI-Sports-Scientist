@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
 import { getOrCreateUserId, initUser, receiveAlgorithmJson } from '../utils/userProfile';
+import { addTrainRecord } from '../utils/profileApi';
 import './EvaluationPage.css';
 
 // MediaPipe Pose Landmarker indices
@@ -22,202 +24,184 @@ const MP = {
   R_HEEL: 30,
 };
 
-// Skeleton connections [fromIndex, toIndex]
-const CONNECTIONS = [
-  [MP.NOSE, MP.L_SHOULDER],
-  [MP.NOSE, MP.R_SHOULDER],
-  [MP.L_SHOULDER, MP.R_SHOULDER],
-  [MP.L_SHOULDER, MP.L_ELBOW],
-  [MP.R_SHOULDER, MP.R_ELBOW],
-  [MP.L_ELBOW, MP.L_WRIST],
-  [MP.R_ELBOW, MP.R_WRIST],
-  [MP.L_SHOULDER, MP.L_HIP],
-  [MP.R_SHOULDER, MP.R_HIP],
-  [MP.L_HIP, MP.R_HIP],
-  [MP.L_HIP, MP.L_KNEE],
-  [MP.R_HIP, MP.R_KNEE],
-  [MP.L_KNEE, MP.L_ANKLE],
-  [MP.R_KNEE, MP.R_ANKLE],
-  [MP.L_ANKLE, MP.L_HEEL],
-  [MP.R_ANKLE, MP.R_HEEL],
-];
-
-// Key points to draw dots on
-const KEY_POINTS = [
-  MP.NOSE, MP.L_SHOULDER, MP.R_SHOULDER,
-  MP.L_ELBOW, MP.R_ELBOW,
-  MP.L_WRIST, MP.R_WRIST,
-  MP.L_HIP, MP.R_HIP,
-  MP.L_KNEE, MP.R_KNEE,
-  MP.L_ANKLE, MP.R_ANKLE,
-];
+// 甲交付的 UMD 模块由 index.html 在 React 启动前加载，统一作为评估页唯一算法来源。
+const ALGORITHM_RUNTIME = typeof globalThis === 'undefined' ? {} : globalThis;
+const calculateAngles = ALGORITHM_RUNTIME.AngleCalculator;
+const countReps = ALGORITHM_RUNTIME.RepCounter;
+const drawAlgorithmSkeleton = ALGORITHM_RUNTIME.drawSkeleton;
+const evaluationSchema = ALGORITHM_RUNTIME.EvaluationSchema;
 
 const MEDIAPIPE_WASM_URL = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm';
 const MEDIAPIPE_MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
 
-/**
- * 计算三点夹角（度）
- * @param {{x:number,y:number}} a - 顶点
- * @param {{x:number,y:number}} b - 端点1
- * @param {{x:number,y:number}} c - 端点2
- */
-function calcAngle(a, b, c) {
-  const ab = { x: b.x - a.x, y: b.y - a.y };
-  const ac = { x: c.x - a.x, y: c.y - a.y };
-  const dot = ab.x * ac.x + ab.y * ac.y;
-  const magAB = Math.sqrt(ab.x * ab.x + ab.y * ab.y);
-  const magAC = Math.sqrt(ac.x * ac.x + ac.y * ac.y);
-  if (magAB === 0 || magAC === 0) return 0;
-  const cos = Math.max(-1, Math.min(1, dot / (magAB * magAC)));
-  return Math.acos(cos) * (180 / Math.PI);
+function averageAngle(...values) {
+  const valid = values.filter((value) => typeof value === 'number' && Number.isFinite(value));
+  return valid.length ? valid.reduce((sum, value) => sum + value, 0) / valid.length : null;
 }
 
-/**
- * 基于关键点计算深蹲相关角度
- */
-function calcSquatAngles(lm) {
-  // 左膝角度 (顶点=膝, 端点=髋+踝)
-  const leftKneeAngle = calcAngle(lm[MP.L_KNEE], lm[MP.L_HIP], lm[MP.L_ANKLE]);
-  // 右膝角度
-  const rightKneeAngle = calcAngle(lm[MP.R_KNEE], lm[MP.R_HIP], lm[MP.R_ANKLE]);
-  // 左髋角度 (顶点=髋, 端点=肩+膝)
-  const leftHipAngle = calcAngle(lm[MP.L_HIP], lm[MP.L_SHOULDER], lm[MP.L_KNEE]);
-  // 右髋角度
-  const rightHipAngle = calcAngle(lm[MP.R_HIP], lm[MP.R_SHOULDER], lm[MP.R_KNEE]);
-  // 躯干倾斜 (shoulder-hip 连线与垂直线的夹角)
-  const leftTrunk = calcAngle(
-    { x: lm[MP.L_SHOULDER].x, y: lm[MP.L_SHOULDER].y },
-    { x: lm[MP.L_SHOULDER].x, y: lm[MP.L_SHOULDER].y - 0.1 },
-    { x: lm[MP.L_HIP].x, y: lm[MP.L_HIP].y }
-  );
-  const rightTrunk = calcAngle(
-    { x: lm[MP.R_SHOULDER].x, y: lm[MP.R_SHOULDER].y },
-    { x: lm[MP.R_SHOULDER].x, y: lm[MP.R_SHOULDER].y - 0.1 },
-    { x: lm[MP.R_HIP].x, y: lm[MP.R_HIP].y }
-  );
+// 甲的角度模块不负责躯干前倾这个可选输入，这里只把关键点几何量适配给 RepCounter。
+function calculateTorsoLean(landmarks) {
+  const sides = [[MP.L_SHOULDER, MP.L_HIP], [MP.R_SHOULDER, MP.R_HIP]];
+  const leanValues = sides.map(([shoulderIndex, hipIndex]) => {
+    const shoulder = landmarks[shoulderIndex];
+    const hip = landmarks[hipIndex];
+    if (!shoulder || !hip || (shoulder.visibility ?? 1) < 0.3 || (hip.visibility ?? 1) < 0.3) return null;
+    return Math.abs(Math.atan2(hip.x - shoulder.x, hip.y - shoulder.y) * (180 / Math.PI));
+  });
+  return averageAngle(...leanValues);
+}
 
+function toDisplayAngles(rawAngles, landmarks) {
+  const torsoLean = calculateTorsoLean(landmarks);
+  const avgKneeAngle = averageAngle(rawAngles.leftKnee, rawAngles.rightKnee);
+  const avgHipAngle = averageAngle(rawAngles.leftHip, rawAngles.rightHip);
+  const avgTrunk = torsoLean === null ? null : 180 - torsoLean;
   return {
-    leftKneeAngle: Math.round(leftKneeAngle),
-    rightKneeAngle: Math.round(rightKneeAngle),
-    leftHipAngle: Math.round(leftHipAngle),
-    rightHipAngle: Math.round(rightHipAngle),
-    leftTrunk: Math.round(leftTrunk),
-    rightTrunk: Math.round(rightTrunk),
-    avgKneeAngle: Math.round((leftKneeAngle + rightKneeAngle) / 2),
-    avgHipAngle: Math.round((leftHipAngle + rightHipAngle) / 2),
-    avgTrunk: Math.round((leftTrunk + rightTrunk) / 2),
+    ...rawAngles,
+    leftKneeAngle: rawAngles.leftKnee === null ? null : Math.round(rawAngles.leftKnee),
+    rightKneeAngle: rawAngles.rightKnee === null ? null : Math.round(rawAngles.rightKnee),
+    leftHipAngle: rawAngles.leftHip === null ? null : Math.round(rawAngles.leftHip),
+    rightHipAngle: rawAngles.rightHip === null ? null : Math.round(rawAngles.rightHip),
+    avgKneeAngle: avgKneeAngle === null ? null : Math.round(avgKneeAngle),
+    avgHipAngle: avgHipAngle === null ? null : Math.round(avgHipAngle),
+    avgTrunk: avgTrunk === null ? null : Math.round(avgTrunk),
+    torsoLean,
   };
 }
 
-/**
- * 根据总分返回评级
- */
-function getGrade(score) {
-  if (score >= 90) return '优秀';
-  if (score >= 75) return '良好';
-  if (score >= 60) return '一般';
-  return '较差';
+function visibleMidpointY(landmarks, firstIndex, secondIndex) {
+  const first = landmarks[firstIndex];
+  const second = landmarks[secondIndex];
+  if (!first || !second || (first.visibility ?? 1) < 0.3 || (second.visibility ?? 1) < 0.3) return null;
+  return (first.y + second.y) / 2;
 }
 
 /**
- * 将视频帧序列分割为单个深蹲动作
- * 下蹲：膝角（左右平均）≤ 90°
- * 起身：膝角（左右平均）≥ 150°
+ * 正面录制时，膝关节屈伸主要发生在镜头深度方向，2D/弱深度关键点有时不会
+ * 形成足够的膝角变化，导致甲的完整下—上循环无法被识别。
+ *
+ * 这个适配器只在标准膝角未检测到动作时启用：以“髋部相对肩/踝的下沉幅度”
+ * 映射成同一套膝角输入，再交给甲的 RepCounter 继续完成计数、评分和错误检测。
  */
-function segmentSquatReps(frames, fps, sampleEvery) {
-  const reps = [];
-  let inRep = false;
-  let currentRep = [];
+function createFrontViewAngleSeries(samples) {
+  const movementSamples = samples.map((sample) => {
+    const shoulderY = visibleMidpointY(sample.landmarks, MP.L_SHOULDER, MP.R_SHOULDER);
+    const hipY = visibleMidpointY(sample.landmarks, MP.L_HIP, MP.R_HIP);
+    const kneeY = visibleMidpointY(sample.landmarks, MP.L_KNEE, MP.R_KNEE);
+    const ankleY = visibleMidpointY(sample.landmarks, MP.L_ANKLE, MP.R_ANKLE);
+    const bodyHeight = shoulderY === null
+      ? 0
+      : (ankleY !== null ? ankleY - shoulderY : (hipY !== null ? (hipY - shoulderY) * 2.5 : 0));
+    const kneeWidth = Math.abs((sample.landmarks[MP.L_KNEE]?.x ?? NaN) - (sample.landmarks[MP.R_KNEE]?.x ?? NaN));
+    const ankleWidth = Math.abs((sample.landmarks[MP.L_ANKLE]?.x ?? NaN) - (sample.landmarks[MP.R_ANKLE]?.x ?? NaN));
 
-  // 单动作最短时长 0.8 秒，按采样率换算最小帧数
-  const sampleInterval = sampleEvery / fps;
-  const minFrames = Math.max(2, Math.ceil(0.8 / sampleInterval));
-
-  for (const frame of frames) {
-    const kneeAngle = frame.angles.avgKneeAngle;
-
-    if (!inRep) {
-      if (kneeAngle <= 90) {
-        inRep = true;
-        currentRep = [frame];
-      }
-    } else {
-      currentRep.push(frame);
-      if (kneeAngle >= 150) {
-        if (currentRep.length >= minFrames) {
-          reps.push(currentRep);
-        }
-        inRep = false;
-        currentRep = [];
-      }
+    if (bodyHeight <= 0.08 || hipY === null || kneeY === null) {
+      return {
+        sample,
+        hipDrop: null,
+        kneeDrop: null,
+        kneeSpread: null,
+        angleDepth: typeof sample.angles.avgHipAngle === 'number' ? sample.angles.avgHipAngle : sample.angles.avgKneeAngle,
+      };
     }
-  }
+    return {
+      sample,
+      // 正面深蹲的蹲底特征：髋、膝在画面中更低，双膝相对脚踝更外展。
+      hipDrop: (hipY - shoulderY) / bodyHeight,
+      kneeDrop: (kneeY - shoulderY) / bodyHeight,
+      kneeSpread: Number.isFinite(kneeWidth) && ankleWidth > 0.001 ? kneeWidth / ankleWidth : null,
+      angleDepth: typeof sample.angles.avgHipAngle === 'number' ? sample.angles.avgHipAngle : sample.angles.avgKneeAngle,
+    };
+  }).filter((item) => typeof item.angleDepth === 'number' && Number.isFinite(item.angleDepth));
 
-  // 若视频结束时仍处于一个未完成的动作中，视情况丢弃（避免噪声）
-  return reps;
+  if (movementSamples.length < 4) return null;
+  const normalize = (key) => {
+    const values = movementSamples
+      .map((item) => item[key])
+      .filter((value) => typeof value === 'number' && Number.isFinite(value));
+    if (!values.length) return { min: 0, range: 0 };
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    return { min, range: max - min };
+  };
+  const hip = normalize('hipDrop');
+  const knee = normalize('kneeDrop');
+  const spread = normalize('kneeSpread');
+  const depthValues = movementSamples.map((item) => item.angleDepth);
+  const depthMin = Math.min(...depthValues);
+  const depthRange = Math.max(...depthValues) - depthMin;
+  const hasMeaningfulMovement = hip.range >= 0.025 || knee.range >= 0.025 || spread.range >= 0.04 || depthRange >= 10;
+  if (!hasMeaningfulMovement) return null;
+
+  return samples.map((sample) => {
+    const matched = movementSamples.find((item) => item.sample === sample);
+    if (!matched) return { ...sample.angles };
+    const components = [];
+    if (hip.range >= 0.025 && typeof matched.hipDrop === 'number') components.push((matched.hipDrop - hip.min) / hip.range);
+    if (knee.range >= 0.025 && typeof matched.kneeDrop === 'number') components.push((matched.kneeDrop - knee.min) / knee.range);
+    if (spread.range >= 0.04 && typeof matched.kneeSpread === 'number') components.push((matched.kneeSpread - spread.min) / spread.range);
+    if (depthRange >= 10) components.push((matched.angleDepth - depthMin) / depthRange);
+    const squatPhase = components.reduce((sum, value) => sum + value, 0) / components.length;
+    // 站立（phase=0）→ 168°；蹲底（phase=1）→ 78°，再交由甲 RepCounter 计数。
+    const calibratedKnee = 168 - squatPhase * 90;
+    return {
+      ...sample.angles,
+      leftKnee: calibratedKnee,
+      rightKnee: calibratedKnee,
+    };
+  });
 }
 
-/**
- * 基于评分标准对单个深蹲动作进行评分
- * @param {Array<{angles,landmarks}>} repFrames - 单个动作的所有帧
- * @returns {{score:number, errors:Array, angles:object}}
- */
-function evaluateSquat(repFrames) {
-  // 取动作最低点（膝角最小）进行评估
-  const bottomFrame = repFrames.reduce((min, frame) =>
-    frame.angles.avgKneeAngle < min.angles.avgKneeAngle ? frame : min
-  , repFrames[0]);
+function addStandingBoundaries(series) {
+  if (!Array.isArray(series) || series.length < 2) return series;
+  const kneeValues = series
+    .flatMap((sample) => [sample.leftKnee, sample.rightKnee])
+    .filter((value) => typeof value === 'number' && Number.isFinite(value));
+  if (!kneeValues.length || Math.min(...kneeValues) > 100) return series;
 
-  const angles = bottomFrame.angles;
-  const lm = bottomFrame.landmarks;
-  const errors = [];
-  let score = 100;
+  const first = series[0];
+  const last = series[series.length - 1];
+  const interval = series.length > 1
+    ? Math.max(1, (series[series.length - 1].timestampMs || 0) - (series[series.length - 2].timestampMs || 0))
+    : 167;
+  const makeStanding = (sample, frame, timestampMs) => ({
+    ...sample,
+    frame,
+    timestampMs,
+    leftKnee: 170,
+    rightKnee: 170,
+  });
 
-  // 1. 蹲太浅（深度不足）：最低点髋角 > 膝角，即髋部未低于膝盖
-  if (angles.avgHipAngle > angles.avgKneeAngle) {
-    score -= 15;
-    errors.push({
-      name: '蹲太浅',
-      code: 'insufficientDepth',
-      severity: 'medium',
-      desc: `下蹲深度不足，髋部未低于膝盖（髋角 ${angles.avgHipAngle}° > 膝角 ${angles.avgKneeAngle}°）`,
-      fix: '下蹲至大腿至少与地面平行，髋部略低于膝盖',
-    });
+  const bounded = [...series];
+  if ((first.leftKnee ?? 170) < 150 || (first.rightKnee ?? 170) < 150) {
+    bounded.unshift(makeStanding(first, (first.frame ?? 0) - 1, (first.timestampMs ?? 0) - interval));
   }
-
-  // 2. 膝内扣：膝盖与脚踝横向偏移 > 0.06（归一化坐标）
-  const leftDeviation = Math.abs(lm[MP.L_KNEE].x - lm[MP.L_ANKLE].x);
-  const rightDeviation = Math.abs(lm[MP.R_KNEE].x - lm[MP.R_ANKLE].x);
-  const kneeValgusDeviation = Math.max(leftDeviation, rightDeviation);
-  if (kneeValgusDeviation > 0.06) {
-    score -= 20;
-    errors.push({
-      name: '膝内扣',
-      code: 'kneeValgus',
-      severity: 'high',
-      desc: `膝盖与脚踝横向偏移 ${kneeValgusDeviation.toFixed(3)}，超过安全阈值 0.06`,
-      fix: '下蹲时膝盖方向与脚尖一致，避免向内塌陷',
-    });
+  const tail = bounded[bounded.length - 1];
+  if ((tail.leftKnee ?? 170) < 150 || (tail.rightKnee ?? 170) < 150) {
+    bounded.push(makeStanding(tail, (tail.frame ?? 0) + 1, (tail.timestampMs ?? 0) + interval));
   }
+  return bounded;
+}
 
-  // 3. 重心前移：躯干（肩髋连线）前倾角度 > 25°
-  const forwardLeanDeg = 180 - angles.avgTrunk;
-  if (forwardLeanDeg > 25) {
-    score -= 10;
-    errors.push({
-      name: '重心前移',
-      code: 'forwardLean',
-      severity: 'low',
-      desc: `躯干前倾约 ${Math.round(forwardLeanDeg)}°，超过 25° 阈值`,
-      fix: '收紧核心，保持躯干更直立，重心落在脚掌中部',
-    });
-  }
+const ERROR_PRESENTATION = {
+  insufficientDepth: { name: '蹲太浅', severity: 'medium', fix: '下蹲至大腿至少与地面平行，髋部略低于膝盖' },
+  kneeValgus: { name: '膝内扣', severity: 'high', fix: '下蹲时膝盖方向与脚尖一致，避免向内塌陷' },
+  forwardLean: { name: '重心前移', severity: 'low', fix: '收紧核心，保持躯干更直立，重心落在脚掌中部' },
+};
 
-  score = Math.max(0, Math.min(100, score));
-  return { score, errors, angles };
+function formatAlgorithmError(error) {
+  const meta = ERROR_PRESENTATION[error.code] || {};
+  return {
+    ...error,
+    name: meta.name || evaluationSchema?.ERROR_CODE_TO_NAME?.[error.code] || error.code,
+    severity: meta.severity || 'medium',
+    desc: error.message || '检测到动作问题',
+    fix: meta.fix || '请根据动作提示调整姿势',
+  };
 }
 
 export default function EvaluationPage() {
+  const navigate = useNavigate();
   const [videoFile, setVideoFile] = useState(null);
   const [videoUrl, setVideoUrl] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -229,7 +213,11 @@ export default function EvaluationPage() {
   const [mpReady, setMpReady] = useState(false);
   const [mpError, setMpError] = useState(null);
   const [currentAngles, setCurrentAngles] = useState(null);
+  const [showDetails, setShowDetails] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const [profileSyncStatus, setProfileSyncStatus] = useState(null);
   const videoRef = useRef(null);
+  const uploadInputRef = useRef(null);
   const canvasRef = useRef(null);
   const animRef = useRef(null);
   const landmarkerRef = useRef(null);
@@ -272,21 +260,30 @@ export default function EvaluationPage() {
 
   const handleUpload = (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setVideoFile(file);
-      setVideoUrl(URL.createObjectURL(file));
+    if (!file) return;
+    if (file.type !== 'video/mp4' && !file.name.toLowerCase().endsWith('.mp4')) {
+      setUploadError('请上传 MP4 格式的视频文件。');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      setUploadError('视频文件不能超过 50MB，请压缩后重新上传。');
+      e.target.value = '';
+      return;
+    }
+    setUploadError(null);
+    setVideoFile(file);
+    setVideoUrl(URL.createObjectURL(file));
       setAnalysisDone(false);
       setScores(null);
       setDetectedErrors([]);
       setAngles(null);
       setCurrentAngles(null);
-    }
+      setShowDetails(false);
   };
 
   // Draw skeleton on canvas from detected landmarks
   const drawSkeleton = useCallback((landmarks, videoEl, canvasEl) => {
-    const ctx = canvasEl.getContext('2d');
-
     // Size canvas to match the video's DISPLAY size
     const displayW = videoEl.clientWidth;
     const displayH = videoEl.clientHeight;
@@ -296,58 +293,15 @@ export default function EvaluationPage() {
       canvasEl.width = displayW;
       canvasEl.height = displayH;
     }
-
-    ctx.clearRect(0, 0, displayW, displayH);
-
-    const toCanvas = (lm) => ({
-      x: lm.x * displayW,
-      y: lm.y * displayH,
-    });
-
-    const pts = landmarks.map(toCanvas);
-
-    // === Draw body connections (cyan lines) ===
-    CONNECTIONS.forEach(([fromIdx, toIdx]) => {
-      const from = pts[fromIdx];
-      const to = pts[toIdx];
-      if (!from || !to) return;
-      // Use nullish coalescing: undefined visibility → treat as visible (1)
-      const visFrom = landmarks[fromIdx].visibility ?? 1;
-      const visTo = landmarks[toIdx].visibility ?? 1;
-      if (visFrom < 0.1 || visTo < 0.1) return;
-
-      ctx.strokeStyle = '#00d4ff';
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.beginPath();
-      ctx.moveTo(from.x, from.y);
-      ctx.lineTo(to.x, to.y);
-      ctx.stroke();
-    });
-
-    // === Draw face landmarks (pink dots) ===
-    const FACE_INDICES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    FACE_INDICES.forEach((idx) => {
-      const lm = landmarks[idx];
-      if (!lm || lm.visibility < 0.1) return;
-      const p = pts[idx];
-      ctx.fillStyle = '#ff69b4';
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
-      ctx.fill();
-    });
-
-    // === Draw body joint dots (cyan) ===
-    KEY_POINTS.forEach((idx) => {
-      const lm = landmarks[idx];
-      if (!lm || lm.visibility < 0.1) return;
-      const p = pts[idx];
-
-      ctx.fillStyle = '#00d4ff';
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-      ctx.fill();
+    if (typeof drawAlgorithmSkeleton !== 'function') return;
+    drawAlgorithmSkeleton(canvasEl, landmarks, undefined, {
+      boneColor: '#00d4ff',
+      landmarkColor: '#00d4ff',
+      boneWidth: 2.5,
+      landmarkRadius: 4,
+      visibilityThreshold: 0.1,
+      showFace: true,
+      coordinateMode: 'normalized',
     });
   }, []);
 
@@ -387,7 +341,8 @@ export default function EvaluationPage() {
           drawSkeleton(landmarks, video, canvas);
 
           // Calculate real-time angles
-          const a = calcSquatAngles(landmarks);
+          const rawAngles = calculateAngles(landmarks);
+          const a = toDisplayAngles(rawAngles, landmarks);
           setCurrentAngles(a);
         }
       } catch (e) {
@@ -463,8 +418,17 @@ export default function EvaluationPage() {
           const result = landmarker.detectForVideo(video, performance.now());
           if (result.landmarks && result.landmarks[0]) {
             const lm = result.landmarks[0];
-            const a = calcSquatAngles(lm);
-            allFrames.push({ angles: a, landmarks: lm });
+            if (typeof calculateAngles !== 'function') {
+              throw new Error('甲算法模块未加载，请刷新页面后重试');
+            }
+            const rawAngles = calculateAngles(lm);
+            const displayAngles = toDisplayAngles(rawAngles, lm);
+            allFrames.push({
+              frame,
+              timestampMs: Math.round(time * 1000),
+              angles: displayAngles,
+              landmarks: lm,
+            });
           }
         } catch (e) {
           // Skip failed frames
@@ -474,76 +438,108 @@ export default function EvaluationPage() {
         setProgress(p);
       }
 
-      // Evaluate
       if (allFrames.length > 0) {
-        // 1. 分割动作
-        const repFrameGroups = segmentSquatReps(allFrames, fps, sampleEvery);
+        if (typeof countReps !== 'function') {
+          throw new Error('甲动作计数模块未加载，请刷新页面后重试');
+        }
 
-        if (repFrameGroups.length > 0) {
-          // 2. 逐个动作评分
-          const repResults = repFrameGroups.map((repFrames, idx) => {
-            const { score, errors, angles } = evaluateSquat(repFrames);
-            return {
-              index: idx + 1,
-              score,
-              errors,
-              angles,
-            };
-          });
+        // 甲的 countReps 接收逐帧角度序列；把页面专用的躯干倾角作为可选字段传入。
+        const angleSeries = allFrames.map(({ frame, timestampMs, angles: frameAngles }) => ({
+          frame,
+          timestampMs,
+          ...frameAngles,
+        }));
+        let algorithmResult = countReps(angleSeries);
+        let analysisView = 'standard';
 
-          // 3. 计算总分与评级
-          const averageScore = Math.round(
-            repResults.reduce((sum, rep) => sum + rep.score, 0) / repResults.length
-          );
-          const grade = getGrade(averageScore);
-
-          // 4. 汇总错误（按出现次数排序，供画像训练记录使用）
-          const errorCounts = {};
-          repResults.forEach((rep) => {
-            rep.errors.forEach((err) => {
-              errorCounts[err.name] = (errorCounts[err.name] || 0) + 1;
-            });
-          });
-          const summaryErrors = Object.entries(errorCounts)
-            .sort((a, b) => b[1] - a[1])
-            .map(([name, count]) => ({
-              name,
-              count,
-              // 取该错误第一次出现的完整描述
-              ...repResults.find((rep) =>
-                rep.errors.some((e) => e.name === name)
-              ).errors.find((e) => e.name === name),
+        // 仅当标准膝角没有识别到完整动作时，尝试正面视角适配。
+        if (algorithmResult.totalReps === 0) {
+          const frontViewAngles = createFrontViewAngleSeries(allFrames);
+          if (frontViewAngles) {
+            const frontViewSeries = frontViewAngles.map((frameAngles, index) => ({
+              frame: allFrames[index].frame,
+              timestampMs: allFrames[index].timestampMs,
+              ...frameAngles,
             }));
+            const frontViewResult = countReps(frontViewSeries);
+            if (frontViewResult.totalReps > 0) {
+              algorithmResult = frontViewResult;
+              analysisView = 'front-adapted';
+            } else {
+              const boundedFrontResult = countReps(addStandingBoundaries(frontViewSeries));
+              if (boundedFrontResult.totalReps > 0) {
+                algorithmResult = boundedFrontResult;
+                analysisView = 'front-boundary-adapted';
+              }
+            }
+          }
+        }
+        // 侧面视频也可能从蹲底开始或在蹲底结束，补入虚拟站立边界后重试。
+        if (algorithmResult.totalReps === 0) {
+          const boundedResult = countReps(addStandingBoundaries(angleSeries));
+          if (boundedResult.totalReps > 0) {
+            algorithmResult = boundedResult;
+            analysisView = 'boundary-adapted';
+          }
+        }
+        if (algorithmResult.totalReps === 0) {
+          setScores({
+            overall: 0,
+            repCount: 0,
+            grade: '较差',
+            reps: [],
+            algorithmResult,
+            analysisView,
+          });
+          setDetectedErrors([{
+            name: '未完成动作',
+            severity: 'medium',
+            desc: '已检测到人体姿态，但视频中没有形成完整的下蹲—起身循环',
+            fix: '请确保视频包含完整站立、下蹲和起身过程，并让全身关键点保持可见',
+          }]);
+          setAngles(allFrames[allFrames.length - 1].angles);
+        } else {
+          const repResults = algorithmResult.reps.map((rep) => {
+          const repFrames = allFrames.filter((sample) =>
+            sample.frame >= rep.startFrame && sample.frame <= rep.endFrame
+          );
+          const bottomFrame = repFrames.reduce((bottom, sample) => {
+            if (!bottom || (sample.angles.avgKneeAngle ?? Infinity) < (bottom.angles.avgKneeAngle ?? Infinity)) return sample;
+            return bottom;
+          }, null);
+          return {
+            index: rep.repNumber,
+            score: rep.score,
+            errors: rep.errors.map(formatAlgorithmError),
+            angles: bottomFrame?.angles || repFrames[0]?.angles || null,
+            startFrame: rep.startFrame,
+            endFrame: rep.endFrame,
+          };
+          });
+
+          const summaryErrors = [];
+          repResults.forEach((rep) => rep.errors.forEach((error) => {
+            const existing = summaryErrors.find((item) => item.name === error.name);
+            if (existing) existing.count += 1;
+            else summaryErrors.push({ ...error, count: 1 });
+          }));
+          summaryErrors.sort((a, b) => b.count - a.count);
 
           setScores({
-            overall: averageScore,
-            repCount: repResults.length,
-            grade,
+            overall: algorithmResult.summary.averageScore,
+            repCount: algorithmResult.totalReps,
+            grade: algorithmResult.summary.grade,
             reps: repResults,
+            algorithmResult,
+            analysisView,
           });
           setDetectedErrors(summaryErrors);
-          setAngles(repResults[0].angles);
-        } else {
-          // 未检测到完整动作：尝试以最低点单帧评估作为兜底
-          const bottomFrame = allFrames.reduce((min, frame) =>
-            frame.angles.avgKneeAngle < min.angles.avgKneeAngle ? frame : min
-          , allFrames[0]);
-          const singleRep = [bottomFrame];
-          const { score, errors, angles } = evaluateSquat(singleRep);
-
-          setScores({
-            overall: score,
-            repCount: 0,
-            grade: getGrade(score),
-            reps: [{ index: 1, score, errors, angles }],
-          });
-          setDetectedErrors(errors);
-          setAngles(angles);
+          setAngles(repResults[0]?.angles || allFrames[0].angles);
         }
       } else {
-        // Fallback if no frames detected
+        // 姿态存在但没有形成完整动作时，显示明确的未完成状态。
         setScores({ overall: 0, repCount: 0, grade: '较差', reps: [] });
-        setDetectedErrors([{ name: '未检测到人体', severity: 'high', desc: '视频中未检测到清晰的人体姿态，请确保人物在画面中央且光线充足', fix: '重新录制视频，确保全身可见' }]);
+        setDetectedErrors([{ name: '未完成动作', severity: 'medium', desc: '已检测到人体姿态，但视频中没有形成完整的下蹲—起身循环', fix: '请录制包含完整站立、下蹲和起身过程的视频' }]);
       }
     } catch (err) {
       console.error('Analysis error:', err);
@@ -591,16 +587,44 @@ export default function EvaluationPage() {
     const correctReps = perRepScores.filter((s) => s >= 90).length;
     const correctnessRate = totalReps > 0 ? Math.round((correctReps / totalReps) * 100) : 0;
 
+    const algorithmResult = scores.algorithmResult || {
+      totalReps,
+      reps: scores.reps.map((rep) => ({
+        repNumber: rep.index,
+        score: rep.score,
+        errors: rep.errors,
+      })),
+      summary: {
+        totalReps,
+        averageScore: scores.overall,
+        grade: scores.grade,
+      },
+    };
+    const evaluation = evaluationSchema?.buildEvaluationResult
+      ? evaluationSchema.buildEvaluationResult({
+        repCount: algorithmResult,
+        videoInfo: {
+          fileName: videoFile?.name || '',
+          durationSec: videoRef.current?.duration || 0,
+          width: videoRef.current?.videoWidth || 0,
+          height: videoRef.current?.videoHeight || 0,
+          fps: 30,
+        },
+        actionCode: 'squat',
+        sets: 1,
+      })
+      : null;
+
     const userId = getOrCreateUserId();
     initUser(userId, '运动用户');
     receiveAlgorithmJson(userId, {
-      action_type: '深蹲',
-      date: new Date().toISOString().slice(0, 10),
-      sets: 1,
-      reps: scores.repCount,
-      score: scores.overall,
-      errors: detectedErrors.map((e) => e.name),
-      duration_sec: videoRef.current?.duration ? Math.round(videoRef.current.duration) : 0,
+      action_type: evaluation?.action_type || '深蹲',
+      date: evaluation?.date || new Date().toISOString().slice(0, 10),
+      sets: evaluation?.sets ?? 1,
+      reps: evaluation?.reps ?? scores.repCount,
+      score: evaluation?.score ?? scores.overall,
+      errors: evaluation?.errors || detectedErrors.map((e) => e.name),
+      duration_sec: evaluation?.duration ?? (videoRef.current?.duration ? Math.round(videoRef.current.duration) : 0),
       // 新增：正确率（做了多少，对了多少）
       total_reps: totalReps,
       correct_reps: correctReps,
@@ -609,7 +633,22 @@ export default function EvaluationPage() {
       per_rep_scores: perRepScores,
       per_rep_errors: perRepErrors,
     });
-  }, [analysisDone, scores, detectedErrors]);
+    addTrainRecord(userId, {
+      action_type: evaluation?.action_type || '深蹲',
+      date: evaluation?.date || new Date().toISOString().slice(0, 10),
+      sets: evaluation?.sets ?? 1,
+      reps: evaluation?.reps ?? scores.repCount,
+      score: evaluation?.score ?? scores.overall,
+      errors: evaluation?.errors || detectedErrors.map((e) => e.name),
+      duration_sec: evaluation?.duration ?? (videoRef.current?.duration ? Math.round(videoRef.current.duration) : 0),
+      total_reps: totalReps,
+      correct_reps: correctReps,
+      correctness_rate: correctnessRate,
+      per_rep_scores: perRepScores,
+      per_rep_errors: perRepErrors,
+    }).then(() => setProfileSyncStatus('本次训练记录已同步到运动画像'))
+      .catch(() => setProfileSyncStatus('本地记录已保存，画像服务暂时未连接'));
+  }, [analysisDone, scores, detectedErrors, videoFile]);
 
   const getScoreColor = (score) => {
     if (score >= 90) return '#00d4ff';
@@ -637,13 +676,19 @@ export default function EvaluationPage() {
       subtitle="上传运动视频，MediaPipe 33 关键点逐帧检测，真实骨架叠加 + 角度评分"
     >
       <div className="eval-page">
+        {profileSyncStatus && (
+          <div className="eval-page__profile-sync" role="status" aria-live="polite">
+            {profileSyncStatus}
+          </div>
+        )}
         {/* Upload Section */}
         <div className="eval-page__upload-section">
           {!videoUrl ? (
             <label className="eval-page__dropzone">
               <input
+                ref={uploadInputRef}
                 type="file"
-                accept="video/*"
+                accept="video/mp4,.mp4"
                 onChange={handleUpload}
                 className="eval-page__file-input"
               />
@@ -652,8 +697,10 @@ export default function EvaluationPage() {
                   <rect x="4" y="4" width="40" height="40" rx="10" stroke="var(--border-color)" strokeWidth="2" strokeDasharray="6 4" />
                   <path d="M24 16v12M18 22l6 6 6-6" stroke="var(--accent-cyan)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
-                <p className="eval-page__dropzone-title">点击或拖拽上传视频</p>
-                <p className="eval-page__dropzone-desc">支持 MP4 / MOV / WebM，最大 100MB</p>
+                <h2 className="eval-page__upload-title">上传动作视频</h2>
+                <p className="eval-page__dropzone-desc">支持正面 / 45° 角拍摄，建议全身入镜，视频时长 5-30 秒</p>
+                <span className="eval-page__upload-cta">选择视频文件</span>
+                <p className="eval-page__upload-format">支持 MP4 格式，文件大小不超过 50MB</p>
               </div>
             </label>
           ) : (
@@ -664,7 +711,11 @@ export default function EvaluationPage() {
                   src={videoUrl}
                   controls
                   className="eval-page__video"
-                  onLoadedMetadata={() => {
+                  onLoadedMetadata={(event) => {
+                    const duration = event.currentTarget.duration;
+                    if (duration < 5 || duration > 30) {
+                      setUploadError('建议上传 5-30 秒的视频，以获得更稳定的评估结果。');
+                    }
                     if (canvasRef.current) {
                       canvasRef.current.width = videoRef.current.videoWidth;
                       canvasRef.current.height = videoRef.current.videoHeight;
@@ -688,10 +739,10 @@ export default function EvaluationPage() {
               )}
 
               <div className="eval-page__video-controls">
-                <label className="eval-page__btn eval-page__btn--secondary">
-                  更换视频
-                  <input type="file" accept="video/*" onChange={handleUpload} className="eval-page__file-input" />
-                </label>
+                <button className="eval-page__btn eval-page__btn--secondary" onClick={() => uploadInputRef.current?.click()}>
+                  重新上传
+                </button>
+                <input ref={uploadInputRef} type="file" accept="video/mp4,.mp4" onChange={handleUpload} className="eval-page__file-input" />
                 {!mpReady && !mpError && (
                   <button className="eval-page__btn eval-page__btn--primary" disabled>
                     加载模型中...
@@ -706,19 +757,36 @@ export default function EvaluationPage() {
               </div>
             </div>
           )}
+          {uploadError && <p className="eval-page__upload-error" role="alert">{uploadError}</p>}
         </div>
+
+        <aside className="eval-page__recording-notes" aria-labelledby="recording-notes-title">
+          <div className="eval-page__recording-notes-heading">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none">
+              <path d="M12 8v4l2.5 1.5M10.3 3.6l-5.8 10A5 5 0 0 0 8.8 21h6.4a5 5 0 0 0 4.3-7.4l-5.8-10a2 2 0 0 0-3.4 0Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <h2 id="recording-notes-title">拍摄注意事项</h2>
+          </div>
+          <ul className="eval-page__recording-notes-list">
+            <li><strong>完整做完每一次</strong><span>每次下蹲后请站直、停稳，再开始下一次动作。</span></li>
+            <li><strong>侧前方拍摄更准确</strong><span>机位建议放在身体侧前方 45°~90°，便于识别髋、膝、踝的活动轨迹。</span></li>
+            <li><strong>全身始终入镜</strong><span>从头部到双脚都要清晰可见，避免脚踝、膝盖被画面边缘遮挡。</span></li>
+            <li><strong>固定机位与光线</strong><span>手机保持稳定，光线均匀；避免逆光、快速移动镜头和多人同时入镜。</span></li>
+          </ul>
+        </aside>
 
         {/* Progress */}
         {analyzing && (
           <div className="eval-page__progress">
+            <h2 className="eval-page__progress-title">正在分析你的动作</h2>
             <div className="eval-page__progress-bar">
-              <div className="eval-page__progress-fill" style={{ width: `${progress}%` }} />
+              <div className="eval-page__progress-fill" style={{ transform: `scaleX(${progress / 100})` }} />
             </div>
             <p className="eval-page__progress-text">
-              正在逐帧检测姿态... {Math.floor(progress)}%
+              正在提取关键点・计算关节角度・生成评估结果 {Math.floor(progress)}%
             </p>
             <p className="eval-page__progress-hint">
-              正在进行分析，请保持屏幕点亮，不要切换软件
+              分析过程约需 10-20 秒，请耐心等待
             </p>
             <div className="eval-page__progress-steps">
               {['姿态提取', '骨架重建', '错误检测', '综合评分'].map((step, i) => (
@@ -736,11 +804,25 @@ export default function EvaluationPage() {
         {/* Results */}
         {analysisDone && scores && (
           <div className="eval-page__results">
+            <div className="eval-page__result-header">
+              <div>
+                <h2>评估完成</h2>
+                <p>已完成本段深蹲动作的识别与评分。</p>
+              </div>
+              <button
+                className="eval-page__btn eval-page__btn--secondary"
+                onClick={() => setShowDetails((visible) => !visible)}
+                aria-expanded={showDetails}
+              >
+                {showDetails ? '收起详细分析' : '查看详细分析'}
+              </button>
+            </div>
+
             {/* Angle Details - real-time during playback */}
-            {(currentAngles || angles) && (
+            {showDetails && (currentAngles || angles) && (
               <div className="eval-page__angles">
                 <h3 className="eval-page__section-title">
-                  关节角度
+                  关键角度数据
                   {currentAngles && <span className="eval-page__live-tag">实时</span>}
                 </h3>
                 <div className="eval-page__angle-grid">
@@ -793,7 +875,7 @@ export default function EvaluationPage() {
                       {scores.overall}
                     </text>
                     <text x="70" y="82" textAnchor="middle" fill="var(--text-muted)" fontSize="12">
-                      综合评分
+                      综合得分
                     </text>
                   </svg>
                 </div>
@@ -809,7 +891,7 @@ export default function EvaluationPage() {
               </div>
 
               <div className="eval-page__score-details">
-                <h4 className="eval-page__rep-list-title">各动作得分</h4>
+                <h3 className="eval-page__rep-list-title">综合得分</h3>
                 <div className="eval-page__rep-list">
                   {scores.reps.map((rep) => (
                     <div key={rep.index} className="eval-page__rep-item">
@@ -864,12 +946,13 @@ export default function EvaluationPage() {
                         {err.severity === 'high' ? '严重' : err.severity === 'medium' ? '中等' : '轻微'}
                       </span>
                       </div>
+                      <h4 className="eval-page__error-subtitle">问题解读</h4>
                       <p className="eval-page__error-desc">{err.desc}</p>
                       <div className="eval-page__error-fix">
                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                           <path d="M7 1v12M1 7h12" stroke="var(--accent-cyan)" strokeWidth="1.5" strokeLinecap="round" />
                         </svg>
-                        <span>{err.fix}</span>
+                        <div><strong>改进建议</strong><span>{err.fix}</span></div>
                       </div>
                     </div>
                   ))}
@@ -877,10 +960,22 @@ export default function EvaluationPage() {
               )}
             </div>
 
+            <div className="eval-page__result-actions">
+              <button className="eval-page__btn eval-page__btn--secondary" onClick={() => uploadInputRef.current?.click()}>
+                重新上传
+              </button>
+              <button className="eval-page__btn eval-page__btn--primary" onClick={() => navigate('/chat')}>
+                咨询 AI 教练
+              </button>
+              <button className="eval-page__btn eval-page__btn--secondary" onClick={() => navigate('/profile')}>
+                保存本次记录
+              </button>
+            </div>
+
             {/* Scoring explanation */}
             <div className="eval-page__scoring-note">
               <p>评分标准：单动作满分 100 分，按命中错误逐项扣分，整段视频总分为所有动作的平均分</p>
-              <p>蹲太浅（髋角 &gt; 膝角）：扣 15 分 | 膝内扣（膝踝横向偏移 &gt; 0.06）：扣 20 分 | 重心前移（躯干前倾 &gt; 25°）：扣 10 分</p>
+              <p>蹲太浅（最低点髋角 &gt; 膝角）：扣 15 分 | 膝内扣（膝踝横向偏移 &gt; 0.06）：扣 20 分 | 重心前移（躯干前倾 &gt; 25°）：扣 10 分</p>
               <p>评级：90~100 优秀 | 75~89 良好 | 60~74 一般 | 0~59 较差</p>
             </div>
           </div>

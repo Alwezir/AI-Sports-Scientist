@@ -4,6 +4,15 @@
   gap: 40px;
 }
 
+.eval-page__profile-sync {
+  padding: 10px 14px;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 8px;
+  color: var(--text-secondary);
+  background: rgba(0, 212, 255, 0.05);
+  font-size: 13px;
+}
+
 /* Upload */
 .eval-page__dropzone {
   display: flex;
@@ -39,9 +48,39 @@
   font-weight: 600;
 }
 
+.eval-page__upload-title {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 750;
+}
+
 .eval-page__dropzone-desc {
   font-size: 14px;
   color: var(--text-muted);
+}
+
+.eval-page__upload-cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 18px;
+  color: var(--bg-primary);
+  background: var(--accent-cyan);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.eval-page__upload-format,
+.eval-page__upload-error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.eval-page__upload-error {
+  margin-top: 10px;
+  color: #ff6b81;
 }
 
 /* Video */
@@ -118,12 +157,84 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
+/* Recording guidance */
+.eval-page__recording-notes {
+  padding: 20px 24px 22px;
+  background: rgba(0, 212, 255, 0.035);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: var(--radius);
+}
+
+.eval-page__recording-notes-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--accent-cyan);
+  margin-bottom: 16px;
+}
+
+.eval-page__recording-notes-heading h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.eval-page__recording-notes-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.eval-page__recording-notes-list li {
+  min-width: 0;
+  padding-left: 17px;
+  position: relative;
+}
+
+.eval-page__recording-notes-list li::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  background: var(--accent-cyan);
+  border-radius: 50%;
+}
+
+.eval-page__recording-notes-list strong,
+.eval-page__recording-notes-list span {
+  display: block;
+}
+
+.eval-page__recording-notes-list strong {
+  margin-bottom: 4px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.eval-page__recording-notes-list span {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
 /* Progress */
 .eval-page__progress {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   padding: 32px;
+}
+
+.eval-page__progress-title {
+  margin: 0 0 18px;
+  font-size: 20px;
+  font-weight: 750;
 }
 
 .eval-page__progress-bar {
@@ -135,10 +246,13 @@
 }
 
 .eval-page__progress-fill {
+  width: 100%;
   height: 100%;
   background: var(--accent-gradient);
   border-radius: 3px;
-  transition: width 0.3s;
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.3s;
 }
 
 .eval-page__progress-text {
@@ -203,6 +317,25 @@
   display: flex;
   flex-direction: column;
   gap: 32px;
+}
+
+.eval-page__result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.eval-page__result-header h2 {
+  margin: 0 0 6px;
+  font-size: 24px;
+  font-weight: 750;
+}
+
+.eval-page__result-header p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
 }
 
 /* Overall score */
@@ -410,6 +543,13 @@
   line-height: 1.6;
 }
 
+.eval-page__error-subtitle {
+  margin: 2px 0 -4px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 650;
+}
+
 .eval-page__error-fix {
   display: flex;
   align-items: center;
@@ -419,6 +559,26 @@
   padding: 8px 12px;
   background: rgba(0, 212, 255, 0.06);
   border-radius: 8px;
+}
+
+.eval-page__error-fix div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.eval-page__error-fix strong {
+  font-size: 12px;
+}
+
+.eval-page__error-fix span {
+  color: var(--text-secondary);
+}
+
+.eval-page__result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .eval-page__demo-hint {
@@ -490,6 +650,25 @@
 }
 
 @media (max-width: 768px) {
+  .eval-page__result-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .eval-page__result-actions .eval-page__btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  .eval-page__recording-notes {
+    padding: 18px;
+  }
+
+  .eval-page__recording-notes-list {
+    grid-template-columns: 1fr;
+    gap: 13px;
+  }
+
   .eval-page__scores {
     grid-template-columns: 1fr;
     padding: 24px;

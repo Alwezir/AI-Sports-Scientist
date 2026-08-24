@@ -48,12 +48,12 @@
     minSecondsPerRep: 0.8,
     // 错误检测阈值
     errors: {
-      // 深度不足：底部膝角 > 110° 判为深度不足（大腿未到水平）
-      depth: { name: "insufficientDepth", maxBottomKneeAngle: 110, penalty: 15 },
+      // 深度不足：髋角 > 膝角（髋没低于膝）
+      depth: { name: "insufficientDepth", thresholdRatio: 1.0, penalty: 15 },
       // 膝盖内扣：膝点与踝点 x 偏差过大
       kneeValgus: { name: "kneeValgus", maxXDeviation: 0.06, penalty: 20 },
       // 重心前移：上身前倾（肩髋连线与竖直方向夹角过大）
-      forwardLean: { name: "forwardLean", maxLeanDeg: 45, penalty: 10 },
+      forwardLean: { name: "forwardLean", maxLeanDeg: 25, penalty: 10 },
     },
   };
 
@@ -143,42 +143,44 @@
     let score = 100;
     const errCfg = config.errors;
 
-    // 1. 深度检查：找实际底部位置（局部最小值），
-    //    若底部膝角 > 110° 判为深度不足（大腿未到水平）
-    if (segment.length >= 3) {
-      // 计算每帧左右膝角均值
-      const avgs = segment.map((s) => {
-        const kv = [s.leftKnee, s.rightKnee].filter(
-          (v) => typeof v === "number" && Number.isFinite(v)
-        );
-        return kv.length ? kv.reduce((a, b) => a + b, 0) / kv.length : null;
-      });
+    // 1. 深度检查：取该 rep 中膝角最小的样本（最低点），
+    //    比较该时刻髋角与膝角（深蹲最低点应髋低于膝）。
+    const kneeVals = segment
+      .map((s) => [s.leftKnee, s.rightKnee])
+      .flat()
+      .filter((v) => typeof v === "number" && Number.isFinite(v));
+    const hipVals = segment
+      .map((s) => [s.leftHip, s.rightHip])
+      .flat()
+      .filter((v) => typeof v === "number" && Number.isFinite(v));
 
-      // 找第一个局部最小值（角度从下降到上升的转折点 = 实际底部）
-      let bottomIdx = -1;
-      for (let i = 1; i < avgs.length - 1; i++) {
-        if (avgs[i] !== null && avgs[i - 1] !== null && avgs[i + 1] !== null) {
-          if (avgs[i] <= avgs[i - 1] && avgs[i] < avgs[i + 1]) {
-            bottomIdx = i;
-            break;
-          }
+    if (kneeVals.length && hipVals.length) {
+      let bottom = null;
+      let bottomKnee = Infinity;
+      for (const sample of segment) {
+        const knees = [sample.leftKnee, sample.rightKnee]
+          .filter((v) => typeof v === "number" && Number.isFinite(v));
+        if (!knees.length) continue;
+        const kneeAverage = knees.reduce((a, b) => a + b, 0) / knees.length;
+        if (kneeAverage < bottomKnee) {
+          bottomKnee = kneeAverage;
+          bottom = sample;
         }
       }
 
-      // 如果没找到局部最小值，回退到全局最小值
-      let bottomKnee;
-      if (bottomIdx >= 0) {
-        bottomKnee = avgs[bottomIdx];
-      } else {
-        const validAvgs = avgs.filter((v) => v !== null);
-        bottomKnee = validAvgs.length ? Math.min(...validAvgs) : null;
-      }
+      const hipsAtBottom = bottom
+        ? [bottom.leftHip, bottom.rightHip]
+          .filter((v) => typeof v === "number" && Number.isFinite(v))
+        : [];
+      const hipAverage = hipsAtBottom.length
+        ? hipsAtBottom.reduce((a, b) => a + b, 0) / hipsAtBottom.length
+        : null;
 
-      if (bottomKnee !== null && bottomKnee > errCfg.depth.maxBottomKneeAngle) {
+      if (hipAverage !== null && hipAverage > bottomKnee * errCfg.depth.thresholdRatio) {
         errors.push({
           code: errCfg.depth.name,
-          message: `下蹲深度不足：底部膝角 ${Math.round(bottomKnee)}° > ${errCfg.depth.maxBottomKneeAngle}°`,
-          frame: segment[bottomIdx >= 0 ? bottomIdx : 0] && segment[bottomIdx >= 0 ? bottomIdx : 0].frame,
+          message: "下蹲深度不足：髋部未低于膝盖",
+          frame: bottom && bottom.frame,
         });
         score -= errCfg.depth.penalty;
       }

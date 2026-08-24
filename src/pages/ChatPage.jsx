@@ -6,10 +6,9 @@ import {
   analyzeAndSaveTraitsFromTurn,
   generateTraitPromptContext,
 } from '../utils/userProfile';
+import { getProfileSummary, sendCoachMessage } from '../utils/profileApi';
+import PixelBlast from '../components/PixelBlast';
 import './ChatPage.css';
-
-const API_URL = 'https://dashscope.aliyuncs.com/api/v1/apps/21bcc71b92e54b8792c7a49d7476ca1d/completion';
-const API_KEY = 'sk-ws-H.ELXRILX.wmJK.MEUCIQCXFWQE-VK1HzWBBXe521dp5d0hYLBoDGbTvWeqOjxqvQIgRohj1nrc8rut0_TKMGI8vm-S_vrU-1yFW19MnVy5DGo';
 
 const INTENT_CATEGORIES = [
   { id: 'analysis', label: '动作分析', icon: '🏋️', desc: '分析你的动作问题' },
@@ -19,28 +18,69 @@ const INTENT_CATEGORIES = [
 ];
 
 const QUICK_QUESTIONS = [
-  '深蹲时膝盖内扣怎么纠正？',
-  '什么是渐进超负荷？',
-  '如何制定一周训练计划？',
-  '我的深蹲评分怎么样？',
+  '深蹲动作哪里做错了？',
+  '大腿酸痛该怎么恢复？',
+  '看看我本次动作评估报告',
 ];
 
+const CHAT_SESSIONS_KEY = 'dongzhi_chat_sessions';
+
+function createConversation() {
+  return {
+    id: `chat_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    title: '新对话',
+    messages: [],
+  };
+}
+
+function getInitialConversations() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CHAT_SESSIONS_KEY));
+    if (Array.isArray(saved) && saved.length > 0) return saved;
+  } catch {
+    // A corrupt local history should not block a new conversation.
+  }
+  return [createConversation()];
+}
+
 export default function ChatPage() {
-  const [messages, setMessages] = useState([
-    {
-      id: 0,
-      role: 'assistant',
-      content: '你好！我是动知 AI 教练。我可以帮你分析动作、解答健身知识、制定训练计划，或者管理你的运动画像。有什么可以帮你的？',
-      intent: null,
-    },
-  ]);
+  const [conversations, setConversations] = useState(getInitialConversations);
+  const [activeConversationId, setActiveConversationId] = useState(null);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedIntent, setSelectedIntent] = useState(null);
   const [traitNotice, setTraitNotice] = useState(null);
+  const [profileNotice, setProfileNotice] = useState(false);
+  const [clearNotice, setClearNotice] = useState(false);
+  const [apiNotice, setApiNotice] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const userIdRef = useRef(null);
+  const activeConversation = conversations.find((conversation) => conversation.id === activeConversationId) || conversations[0];
+  const messages = activeConversation?.messages || [];
+
+  const resizeInput = () => {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+    textarea.style.height = '48px';
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 150)}px`;
+  };
+
+  const updateConversation = (conversationId, update) => {
+    setConversations((previous) => previous.map((conversation) => (
+      conversation.id === conversationId ? update(conversation) : conversation
+    )));
+  };
+
+  const addMessage = (conversationId, message) => {
+    updateConversation(conversationId, (conversation) => ({
+      ...conversation,
+      title: conversation.messages.length === 0 && message.role === 'user'
+        ? message.content.slice(0, 18)
+        : conversation.title,
+      messages: [...conversation.messages, message],
+    }));
+  };
 
   // 初始化用户 ID（懒加载，仅一次）
   useEffect(() => {
@@ -48,6 +88,16 @@ export default function ChatPage() {
     initUser(uid, '运动用户');
     userIdRef.current = uid;
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem(CHAT_SESSIONS_KEY, JSON.stringify(conversations));
+  }, [conversations]);
+
+  useEffect(() => {
+    if (!activeConversationId || !conversations.some((conversation) => conversation.id === activeConversationId)) {
+      setActiveConversationId(conversations[0]?.id || null);
+    }
+  }, [activeConversationId, conversations]);
 
   // 特点提示 3 秒自动消失
   useEffect(() => {
@@ -57,12 +107,28 @@ export default function ChatPage() {
   }, [traitNotice]);
 
   useEffect(() => {
+    if (!profileNotice) return;
+    const t = setTimeout(() => setProfileNotice(false), 4200);
+    return () => clearTimeout(t);
+  }, [profileNotice]);
+
+  useEffect(() => {
+    if (!clearNotice) return;
+    const t = setTimeout(() => setClearNotice(false), 3200);
+    return () => clearTimeout(t);
+  }, [clearNotice]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  useEffect(() => {
+    resizeInput();
+  }, [input]);
+
   const sendMessage = async (text) => {
     const messageText = text || input.trim();
-    if (!messageText || loading) return;
+    if (!messageText || loading || !activeConversation) return;
 
     const uid = userIdRef.current || getOrCreateUserId();
     if (!userIdRef.current) userIdRef.current = uid;
@@ -74,42 +140,41 @@ export default function ChatPage() {
       intent: selectedIntent,
     };
 
-    setMessages((prev) => [...prev, userMsg]);
+    const conversationId = activeConversation.id;
+    addMessage(conversationId, userMsg);
     setInput('');
     setLoading(true);
-
-    // 注入用户画像上下文，让 AI 教练真正"记得"用户特点
-    const profileContext = generateTraitPromptContext(uid);
-    const finalPrompt = profileContext + '\n\n---\n用户问题：\n' + messageText;
+    setProfileNotice(true);
 
     try {
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          input: {
-            prompt: finalPrompt,
-          },
-          parameters: {},
-        }),
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(`API 请求失败 (${response.status}): ${errText}`);
+      let profile;
+      try {
+        profile = await getProfileSummary(uid);
+        setApiNotice(null);
+      } catch {
+        profile = { summary: generateTraitPromptContext(uid) };
+        setApiNotice('画像服务暂时不可用，本次先使用本机画像继续对话');
       }
 
-      const data = await response.json();
-
-      // DashScope app completion 返回结构: data.output.text
-      const reply =
-        data?.output?.text ||
-        data?.output?.choices?.[0]?.message?.content ||
-        data?.text ||
-        '抱歉，我暂时无法回答这个问题。';
+      const coachPayload = {
+        userId: uid,
+        sessionId: conversationId,
+        text: messageText,
+        messages: [...messages, userMsg],
+        profileSummary: profile.summary || profile,
+      };
+      let reply;
+      try {
+        reply = await sendCoachMessage(coachPayload);
+      } catch (firstError) {
+        if (firstError.status === 500 || firstError.code === 'MODEL_FAILED') {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+          reply = await sendCoachMessage(coachPayload);
+        } else {
+          throw firstError;
+        }
+      }
+      if (!reply) throw new Error('教练接口返回内容为空');
 
       // 从本轮对话（用户 + 助手回复）抽取可记住的用户特点并写入画像
       const traitResult = analyzeAndSaveTraitsFromTurn(uid, messageText, reply);
@@ -117,26 +182,27 @@ export default function ChatPage() {
         setTraitNotice(traitResult);
       }
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          role: 'assistant',
-          content: reply,
-          intent: selectedIntent,
-        },
-      ]);
+      addMessage(conversationId, {
+        id: Date.now() + 1,
+        role: 'assistant',
+        content: reply,
+        intent: selectedIntent,
+      });
     } catch (error) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          role: 'assistant',
-          content: `连接失败：${error.message}。请检查网络连接后重试。`,
-          intent: null,
-          isError: true,
-        },
-      ]);
+      addMessage(conversationId, {
+        id: Date.now() + 1,
+        role: 'assistant',
+          content: error.status === 429
+            ? '请求较多，请稍后再试'
+            : error.status === 503
+              ? 'AI 教练服务正在维护，请稍后再试'
+              : error.status === 401 || error.status === 403
+                ? 'AI 教练服务暂未授权，请联系管理员配置接口'
+                : '教练临时有事离开一下，请稍等片刻再试。',
+        intent: null,
+        isError: true,
+      });
+      setApiNotice(error.message || 'AI 教练服务暂时不可用');
     } finally {
       setLoading(false);
     }
@@ -149,12 +215,49 @@ export default function ChatPage() {
     }
   };
 
+  const startNewConversation = () => {
+    if (loading) return;
+    const conversation = createConversation();
+    setConversations((previous) => [conversation, ...previous]);
+    setActiveConversationId(conversation.id);
+    setInput('');
+    setSelectedIntent(null);
+  };
+
+  const clearActiveConversation = () => {
+    if (loading || !activeConversation) return;
+    updateConversation(activeConversation.id, (conversation) => ({
+      ...conversation,
+      title: '新对话',
+      messages: [],
+    }));
+    setInput('');
+    setSelectedIntent(null);
+    setClearNotice(true);
+  };
+
+  const removeConversation = (event, conversationId) => {
+    event.stopPropagation();
+    if (loading) return;
+    setConversations((previous) => {
+      if (previous.length === 1) {
+        const replacement = createConversation();
+        setActiveConversationId(replacement.id);
+        return [replacement];
+      }
+      const next = previous.filter((conversation) => conversation.id !== conversationId);
+      if (conversationId === activeConversationId) setActiveConversationId(next[0].id);
+      return next;
+    });
+  };
+
   return (
     <PageLayout
-      title="AI 教练对话"
-      subtitle="基于千问大模型，4 类意图智能路由，回答引用你的历史数据"
+      title="AI教练对话"
+      subtitle="结合你的运动画像，给你个性化运动指导"
     >
       <div className="chat-page">
+        <PixelBlast color="#b497cf" pixelSize={4} speed={0.48} />
         {/* Trait notice toast */}
         {traitNotice && (
           <div className="chat-page__trait-toast" role="status">
@@ -168,6 +271,81 @@ export default function ChatPage() {
           </div>
         )}
 
+        {profileNotice && (
+          <div className="chat-page__profile-toast" role="status" aria-live="polite">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
+              <path d="M8 12h8M12 8v8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+            <span>
+              <strong>已读取你的运动画像</strong>
+              <small>将结合你的训练习惯、过往动作问题为你生成回答</small>
+            </span>
+          </div>
+        )}
+
+        {clearNotice && (
+          <div className="chat-page__clear-toast" role="status" aria-live="polite">
+            会话记录已清空，开启新一轮对话
+          </div>
+        )}
+
+        {apiNotice && (
+          <div className="chat-page__api-notice" role="status" aria-live="polite">
+            {apiNotice}
+          </div>
+        )}
+
+        <div className="chat-page__workspace">
+          <aside className="chat-page__sidebar" aria-label="对话历史">
+            <button type="button" className="chat-page__new-chat-btn" onClick={startNewConversation} disabled={loading}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+              新建对话
+            </button>
+            <div className="chat-page__history-label">最近对话</div>
+            <div className="chat-page__session-list">
+              {conversations.map((conversation) => (
+                <div
+                  key={conversation.id}
+                  type="button"
+                  className={`chat-page__session ${conversation.id === activeConversation?.id ? 'chat-page__session--active' : ''}`}
+                  title={conversation.title}
+                >
+                  <button
+                    type="button"
+                    className="chat-page__session-select"
+                    onClick={() => {
+                      if (!loading) {
+                        setActiveConversationId(conversation.id);
+                        setSelectedIntent(null);
+                      }
+                    }}
+                    disabled={loading}
+                  >
+                    <svg className="chat-page__session-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v6A2.5 2.5 0 0 1 16.5 15H12l-3.8 3v-3H7.5A2.5 2.5 0 0 1 5 12.5v-6Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+                    </svg>
+                    <span>{conversation.title}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="chat-page__session-delete"
+                    aria-label={`删除对话：${conversation.title}`}
+                    onClick={(event) => removeConversation(event, conversation.id)}
+                    disabled={loading}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M5 7h14M10 11v6M14 11v6M9 7l1-2h4l1 2m-8 0 1 13h8l1-13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </aside>
+
+          <section className="chat-page__main">
         {/* Intent selector */}
         <div className="chat-page__intents">
           {INTENT_CATEGORIES.map((intent) => (
@@ -187,7 +365,36 @@ export default function ChatPage() {
 
         {/* Chat area */}
         <div className="chat-page__container">
+          <div className="chat-page__toolbar">
+            <span className="chat-page__toolbar-title">对话记录</span>
+            <button
+              type="button"
+              className="chat-page__clear-btn"
+              onClick={() => {
+                if (!loading) {
+                  clearActiveConversation();
+                }
+              }}
+              disabled={loading || messages.length === 0}
+            >
+              清空会话
+            </button>
+          </div>
           <div className="chat-page__messages">
+            {messages.length === 0 && (
+              <div className="chat-page__empty-state">
+                <div className="chat-page__empty-icon" aria-hidden="true">
+                  <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+                    <path d="M6 7.5A3.5 3.5 0 0 1 9.5 4h11A3.5 3.5 0 0 1 24 7.5v8a3.5 3.5 0 0 1-3.5 3.5H14l-5.2 4v-4H9.5A3.5 3.5 0 0 1 6 15.5v-8Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+                    <path d="M10 10h10M10 14h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                  </svg>
+                </div>
+                <span className="chat-page__empty-kicker">动知 AI 教练</span>
+                <h2>欢迎来到 AI 教练对话！</h2>
+                <p>我是你的专属运动数字分身。我可以结合你的运动画像，帮你分析动作错误、讲解肌肉知识、解答健身训练疑问。</p>
+                <span className="chat-page__empty-label">你可以试试提问：</span>
+              </div>
+            )}
             {messages.map((msg) => (
               <div
                 key={msg.id}
@@ -233,6 +440,7 @@ export default function ChatPage() {
                   </svg>
                 </div>
                 <div className="chat-page__bubble">
+                  <span className="chat-page__loading-label">AI教练思考中，请稍候…</span>
                   <div className="chat-page__typing">
                     <span />
                     <span />
@@ -246,9 +454,9 @@ export default function ChatPage() {
           </div>
 
           {/* Quick questions */}
-          {messages.length <= 1 && (
+          {messages.length === 0 && (
             <div className="chat-page__quick">
-              <p className="chat-page__quick-label">试试这些问题：</p>
+              <p className="chat-page__quick-label">从一个问题开始</p>
               <div className="chat-page__quick-list">
                 {QUICK_QUESTIONS.map((q) => (
                   <button
@@ -274,12 +482,26 @@ export default function ChatPage() {
               </div>
             )}
             <div className="chat-page__input-wrapper">
+              <button
+                type="button"
+                className="chat-page__attach-btn"
+                title="上传动作评估报告"
+                aria-label="上传动作评估报告"
+                onClick={() => setApiNotice('动作评估报告会在评估完成后自动关联到本次对话')}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="m14.5 6.5-7.1 7.1a3 3 0 0 0 4.2 4.2l7.1-7.1a4.5 4.5 0 0 0-6.4-6.4l-7.1 7.1a6 6 0 0 0 8.5 8.5l6.1-6.1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
               <textarea
                 ref={inputRef}
                 className="chat-page__textarea"
-                placeholder="输入你的问题..."
+                placeholder="描述你的运动问题，也可以上传动作评估报告向教练提问…"
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  resizeInput();
+                }}
                 onKeyDown={handleKeyDown}
                 rows={1}
                 disabled={loading}
@@ -288,13 +510,19 @@ export default function ChatPage() {
                 className="chat-page__send-btn"
                 onClick={() => sendMessage()}
                 disabled={!input.trim() || loading}
+                aria-label="发送"
               >
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                   <path d="M3 10h14M13 6l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
+                <span>发送</span>
               </button>
             </div>
+            <p className="chat-page__compliance">本对话内容受合规管控，不会泄露你的个人运动数据</p>
+            <p className="chat-page__disclaimer">AI生成内容仅供科普参考，不构成医疗诊断建议</p>
           </div>
+        </div>
+          </section>
         </div>
       </div>
     </PageLayout>

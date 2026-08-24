@@ -16,6 +16,15 @@ import {
   saveManualProfile,
   resetManualProfile,
 } from '../utils/userProfile';
+import {
+  addGoal,
+  addMoodRecord,
+  addTrainRecord,
+  getFullProfile,
+  getProfileSummary,
+  normalizeRemoteProfile,
+} from '../utils/profileApi';
+import { getInitialProfileApiStatus } from '../utils/profileStatus';
 import './ProfilePage.css';
 
 // 手动画像 UI 兜底默认值（真实存取都走 userProfile 门面，已自动从旧 dongzhi_profile 迁移）
@@ -289,7 +298,7 @@ export default function ProfilePage() {
     }
   });
 
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState('status');
   const [newRecord, setNewRecord] = useState({ sport: '', duration: '', notes: '' });
   const [aiSummary, setAiSummary] = useState('');
   const [aiRecords, setAiRecords] = useState([]);
@@ -299,6 +308,7 @@ export default function ProfilePage() {
   const [chatTraits, setChatTraits] = useState({});
   const [addCategory, setAddCategory] = useState('injury');
   const [addValue, setAddValue] = useState('');
+  const [profileApiStatus, setProfileApiStatus] = useState(null);
   const traitCats = getTraitCategories();
 
   // 手动 profile 变更后：统一写入门面层（不再直接写 dongzhi_profile localStorage）
@@ -310,15 +320,50 @@ export default function ProfilePage() {
     }
   }, [profile]);
 
+  // 首次进入画像页时，用服务端的情绪与阶段目标补齐本机缓存。
+  useEffect(() => {
+    const userId = getOrCreateUserId();
+    getFullProfile(userId)
+      .then((payload) => {
+        const remote = normalizeRemoteProfile(payload);
+        const latestMood = remote.moods.at(-1);
+        const activeGoal = remote.goals.find((goal) => goal.status === '进行中') || remote.goals.at(-1);
+        setProfile((previous) => ({
+          ...previous,
+          mood: MOOD_OPTIONS.some((option) => option.value === latestMood?.mood)
+            ? latestMood.mood
+            : previous.mood,
+          goal: activeGoal?.description || previous.goal,
+        }));
+        setProfileApiStatus(getInitialProfileApiStatus(true));
+      })
+      .catch(() => {
+        setProfileApiStatus(getInitialProfileApiStatus(false));
+      });
+  }, []);
+
   // AI 画像：读取算法训练数据生成的画像摘要（对接 generate_profile_summary）
   useEffect(() => {
     if (activeTab !== 'ai-profile') return;
     const userId = getOrCreateUserId();
+    let cancelled = false;
     setAiSummary(generateProfileSummary(userId, 'train'));
     setAiRecords(getTrainingRecords(userId));
     setTrainingOverview(getTrainingOverview(userId));
     setRecurringErrors(getRecurringErrors(userId, 1)); // 至少出现 1 次即展示，便于查看
     setRecentScores(getRecentPerRepScores(userId, 30));
+    Promise.all([getFullProfile(userId), getProfileSummary(userId)])
+      .then(([payload, summary]) => {
+        if (cancelled) return;
+        const remote = normalizeRemoteProfile(payload);
+        setAiSummary(summary.summary || generateProfileSummary(userId, 'train'));
+        setAiRecords(remote.trainingRecords);
+        setProfileApiStatus('已连接画像服务，训练记录与摘要为最新数据');
+      })
+      .catch(() => {
+        if (!cancelled) setProfileApiStatus('画像服务暂时未连接，当前显示本机缓存数据');
+      });
+    return () => { cancelled = true; };
   }, [activeTab]);
 
   // 个人设置：读取对话记住的用户特点
@@ -373,6 +418,18 @@ export default function ProfilePage() {
       ...prev,
       records: [record, ...prev.records],
     }));
+    addTrainRecord(getOrCreateUserId(), {
+      action_type: record.sport,
+      date: new Date().toISOString().slice(0, 10),
+      sets: 1,
+      reps: 0,
+      score: null,
+      errors: [],
+      duration_sec: Number(record.duration) * 60,
+      notes: record.notes || '',
+      mood: record.mood,
+    }).then(() => setProfileApiStatus('训练记录已同步到运动画像'))
+      .catch(() => setProfileApiStatus('记录已保存在本机，画像服务暂时未连接'));
     setNewRecord({ sport: '', duration: '', notes: '' });
   };
 
@@ -384,8 +441,7 @@ export default function ProfilePage() {
   };
 
   const tabs = [
-    { id: 'overview', label: '总览' },
-    { id: 'records', label: '训练记录' },
+    { id: 'status', label: '状态记录' },
     { id: 'ai-profile', label: 'AI 画像' },
     { id: 'goals', label: '目标管理' },
     { id: 'settings', label: '个人设置' },
@@ -406,6 +462,11 @@ export default function ProfilePage() {
       subtitle="记录你的训练习惯、目标和状态，AI 越用越懂你"
     >
       <div className="profile-page">
+        {profileApiStatus && (
+          <div className="profile-page__api-status" role="status" aria-live="polite">
+            {profileApiStatus}
+          </div>
+        )}
         {/* Tabs */}
         <div className="profile-page__tabs">
           {tabs.map((tab) => (
@@ -420,7 +481,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Overview Tab */}
-        {activeTab === 'overview' && (
+        {activeTab === 'status' && (
           <div className="profile-page__tab-content">
             <div className="profile-page__stats-grid">
               <div className="profile-page__stat-card">
@@ -449,7 +510,15 @@ export default function ProfilePage() {
                   <button
                     key={m.value}
                     className={`profile-page__mood-btn ${profile.mood === m.value ? 'profile-page__mood-btn--active' : ''}`}
-                    onClick={() => updateProfile('mood', m.value)}
+                    onClick={() => {
+                      updateProfile('mood', m.value);
+                      addMoodRecord(getOrCreateUserId(), {
+                        content: m.label,
+                        mood: m.value,
+                        timestamp: new Date().toISOString(),
+                      }).then(() => setProfileApiStatus('今日状态已同步到运动画像'))
+                        .catch(() => setProfileApiStatus('状态已保存在本机，画像服务暂时未连接'));
+                    }}
                   >
                     <span className="profile-page__mood-emoji">{m.emoji}</span>
                     <span className="profile-page__mood-label">{m.label}</span>
@@ -491,26 +560,43 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Recent records */}
-            {profile.records.length > 0 && (
-              <div className="profile-page__section">
-                <h3 className="profile-page__section-title">最近训练</h3>
-                <div className="profile-page__recent-list">
-                  {profile.records.slice(0, 5).map((r) => (
-                    <div key={r.id} className="profile-page__recent-item">
-                      <span className="profile-page__recent-sport">{r.sport}</span>
-                      <span className="profile-page__recent-duration">{r.duration} 分钟</span>
-                      <span className="profile-page__recent-date">{r.date}</span>
+            <div className="profile-page__section">
+              <div className="profile-page__section-heading-row">
+                <h3 className="profile-page__section-title">训练记录</h3>
+                <span className="profile-page__section-meta">共 {profile.records.length} 条</span>
+              </div>
+              {profile.records.length === 0 ? (
+                <div className="profile-page__empty profile-page__empty--compact">
+                  <p>暂无训练记录，完成一次训练后就能在这里看到状态变化。</p>
+                </div>
+              ) : (
+                <div className="profile-page__records-list">
+                  {profile.records.map((r) => (
+                    <div key={r.id} className="profile-page__record-card">
+                      <div className="profile-page__record-header">
+                        <span className="profile-page__record-sport">{r.sport}</span>
+                        <span className="profile-page__record-date">{r.date}</span>
+                      </div>
+                      <div className="profile-page__record-body">
+                        <span>{r.duration} 分钟</span>
+                        {r.notes && <span className="profile-page__record-notes">{r.notes}</span>}
+                        <span className="profile-page__record-mood">
+                          {MOOD_OPTIONS.find((m) => m.value === r.mood)?.emoji}
+                        </span>
+                      </div>
+                      <button className="profile-page__record-delete" onClick={() => deleteRecord(r.id)}>
+                        删除
+                      </button>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
 
         {/* Records Tab */}
-        {activeTab === 'records' && (
+        {false && activeTab === 'records' && (
           <div className="profile-page__tab-content">
             <div className="profile-page__section">
               <h3 className="profile-page__section-title">添加新记录</h3>
@@ -786,6 +872,17 @@ export default function ProfilePage() {
                 placeholder="描述你的训练目标，例如：3个月内深蹲达到100kg..."
                 value={profile.goal}
                 onChange={(e) => updateProfile('goal', e.target.value)}
+                onBlur={() => {
+                  const description = profile.goal.trim();
+                  if (!description) return;
+                  addGoal(getOrCreateUserId(), {
+                    description,
+                    target_metric: '按计划持续训练',
+                    status: '进行中',
+                    target_date: '',
+                  }).then(() => setProfileApiStatus('阶段目标已同步到运动画像'))
+                    .catch(() => setProfileApiStatus('目标已保存在本机，画像服务暂时未连接'));
+                }}
                 rows={4}
               />
             </div>
