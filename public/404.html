@@ -3,27 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>重定向中...</title>
+  <title>页面加载中...</title>
   <script>
     (function() {
-      var basePath = '/AI-Sports-Scientist/';
+      var BASE_PATH = '/AI-Sports-Scientist';
       var path = window.location.pathname;
+      var search = window.location.search;
       var hash = window.location.hash;
-      
-      // 如果路径以 basePath 开头，去掉 basePath
-      if (path.startsWith(basePath)) {
-        path = path.substring(basePath.length);
-      } else if (path.startsWith('/')) {
-        path = path.substring(1);
-      }
-      
-      // 如果路径为空或只是 basePath，重定向到首页
-      if (!path || path === '') {
-        window.location.replace(basePath + (hash || ''));
-      } else {
-        // 否则，重定向到 basePath + path
-        window.location.replace(basePath + path + hash);
-      }
+
+      sessionStorage.setItem('spa-redirect', path + search + hash);
+
+      window.location.replace(BASE_PATH + '/');
     })();
   </script>
   <style>
@@ -37,9 +27,7 @@
       color: #8888a8;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
-    .container {
-      text-align: center;
-    }
+    .container { text-align: center; }
     .spinner {
       width: 40px;
       height: 40px;
@@ -49,9 +37,7 @@
       animation: spin 1s linear infinite;
       margin: 0 auto 20px;
     }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>

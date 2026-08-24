@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import PillNav from './components/PillNav';
 import Hero from './components/Hero';
 import Features from './components/Features';
@@ -18,6 +19,33 @@ const navItems = [
   { label: '技术', href: '#tech' },
   { label: '团队', href: '#footer' },
 ];
+
+function SpaRedirectRestore() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem('spa-redirect');
+    if (!saved) return;
+    sessionStorage.removeItem('spa-redirect');
+
+    const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+    let target = saved;
+
+    if (target.startsWith(base)) {
+      target = target.slice(base.length);
+    }
+    if (!target.startsWith('/')) {
+      target = '/' + target;
+    }
+
+    if (target && target !== '/' && target !== location.pathname) {
+      navigate(target, { replace: true });
+    }
+  }, [navigate, location.pathname]);
+
+  return null;
+}
 
 function HomePage() {
   return (
@@ -42,6 +70,7 @@ function HomePage() {
 export default function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+      <SpaRedirectRestore />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/evaluation" element={<EvaluationPage />} />
