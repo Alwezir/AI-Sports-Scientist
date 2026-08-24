@@ -6,7 +6,8 @@ import {
   analyzeAndSaveTraitsFromTurn,
   generateTraitPromptContext,
 } from '../utils/userProfile';
-import { getProfileSummary, sendCoachMessage, getCoachConfig } from '../utils/profileApi';
+import { getProfileSummary, getCoachConfig } from '../utils/profileApi';
+import { respond as coachRespond, resetSessionProfile } from '../utils/coach/coachEngine.js';
 import PixelBlast from '../components/PixelBlast';
 import './ChatPage.css';
 
@@ -149,34 +150,28 @@ export default function ChatPage() {
     setProfileNotice(true);
 
     try {
-      let profile;
+      let profileSummaryText;
       try {
-        profile = await getProfileSummary(uid);
+        const profile = await getProfileSummary(uid);
+        profileSummaryText = typeof profile === 'string' ? profile : (profile.summary || generateTraitPromptContext(uid));
         setApiNotice(null);
       } catch {
-        profile = { summary: generateTraitPromptContext(uid) };
+        profileSummaryText = generateTraitPromptContext(uid);
         setApiNotice('画像服务暂时不可用，本次先使用本机画像继续对话');
       }
 
-      const coachPayload = {
-        userId: uid,
-        sessionId: conversationId,
+      // ---- 新引擎：移植自 PythonApplication5.py 的 respond() ----
+      const { reply, updateNotice } = await coachRespond({
         text: messageText,
-        messages: [...messages, userMsg],
-        profileSummary: profile.summary || profile,
-      };
-      let reply;
-      try {
-        reply = await sendCoachMessage(coachPayload);
-      } catch (firstError) {
-        if (firstError.status === 500 || firstError.code === 'MODEL_FAILED') {
-          await new Promise((resolve) => setTimeout(resolve, 1500));
-          reply = await sendCoachMessage(coachPayload);
-        } else {
-          throw firstError;
-        }
-      }
+        history: messages,
+        files: [],
+        profileSummaryText,
+      });
       if (!reply) throw new Error('教练接口返回内容为空');
+
+      if (updateNotice) {
+        setApiNotice(updateNotice);
+      }
 
       // 从本轮对话（用户 + 助手回复）抽取可记住的用户特点并写入画像
       const traitResult = analyzeAndSaveTraitsFromTurn(uid, messageText, reply);
@@ -224,6 +219,7 @@ export default function ChatPage() {
     setActiveConversationId(conversation.id);
     setInput('');
     setSelectedIntent(null);
+    resetSessionProfile(); // 新建对话同时重置对话内画像（身份/知识水平等）
   };
 
   const clearActiveConversation = () => {

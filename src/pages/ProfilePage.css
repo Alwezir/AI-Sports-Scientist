@@ -357,6 +357,59 @@
   border-color: rgba(0, 212, 255, 0.25);
 }
 
+/* Population */
+.profile-page__population-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.profile-page__population-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: left;
+}
+
+.profile-page__population-card:hover {
+  border-color: rgba(0, 212, 255, 0.3);
+  background: rgba(0, 212, 255, 0.04);
+}
+
+.profile-page__population-card--active {
+  border-color: var(--accent-cyan);
+  background: rgba(0, 212, 255, 0.1);
+  box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.15);
+}
+
+.profile-page__population-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.profile-page__population-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.profile-page__population-card--active .profile-page__population-name {
+  color: var(--accent-cyan);
+}
+
+.profile-page__population-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
 /* Level */
 .profile-page__level-grid {
   display: flex;
