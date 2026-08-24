@@ -771,6 +771,7 @@ export default function EvaluationPage() {
             <li><strong>完整做完每一次</strong><span>每次下蹲后请站直、停稳，再开始下一次动作。</span></li>
             <li><strong>侧前方拍摄更准确</strong><span>机位建议放在身体侧前方 45°~90°，便于识别髋、膝、踝的活动轨迹。</span></li>
             <li><strong>全身始终入镜</strong><span>从头部到双脚都要清晰可见，避免脚踝、膝盖被画面边缘遮挡。</span></li>
+            <li><strong>单人出镜拍摄</strong><span>画面里只能有被评估者一人；多人同框、背景过乱都会造成骨架识别错误，干扰评分准确性。</span></li>
             <li><strong>固定机位与光线</strong><span>手机保持稳定，光线均匀；避免逆光、快速移动镜头和多人同时入镜。</span></li>
           </ul>
         </aside>
