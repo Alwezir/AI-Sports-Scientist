@@ -54,7 +54,7 @@ export default function ChatPage() {
   const [clearNotice, setClearNotice] = useState(false);
   const [apiNotice, setApiNotice] = useState(null);
   const coachConfig = getCoachConfig();
-  const coachUnconfigured = !coachConfig.appId;
+  const coachUnconfigured = !coachConfig.isConfigured;
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const userIdRef = useRef(null);
@@ -269,7 +269,12 @@ export default function ChatPage() {
             </svg>
             <div>
               <strong>AI 教练尚未配置</strong>
-              <p>请在环境变量中设置 <code>VITE_COACH_APP_ID</code>。开发模式下可在 <code>.env.local</code> 中配置，生产环境需在 GitHub Repository Secrets 中添加。</p>
+              <p>请在 GitHub Repository Secrets 中添加以下变量：</p>
+              <ul className="chat-page__config-list">
+                <li><code>VITE_COACH_APP_ID</code>（必填）你的应用 ID</li>
+                <li><code>VITE_COACH_API_BASE</code>（推荐）Cloudflare Worker 地址，或 <code>VITE_COACH_API_KEY</code>（备选）前端直连</li>
+              </ul>
+              <p className="chat-page__config-hint">本地开发可在 <code>.env.local</code> 中配置</p>
             </div>
           </div>
         )}

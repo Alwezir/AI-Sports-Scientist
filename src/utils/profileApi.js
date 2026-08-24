@@ -84,31 +84,35 @@ function toCoachHistory(messages) {
 }
 
 async function callCoachApi(path, body) {
-  const url = coachUrl(path);
   const headers = { 'Content-Type': 'application/json' };
-  const usingDirect = !IS_DEV && !isAbsoluteUrl(COACH_API_BASE);
+  const hasWorker = isAbsoluteUrl(COACH_API_BASE);
 
-  if (usingDirect && COACH_API_KEY) {
-    headers['Authorization'] = `Bearer ${COACH_API_KEY}`;
-  }
-
-  try {
-    return await request(url, {
+  if (IS_DEV) {
+    return request(coachUrl(path), {
       method: 'POST',
       body: JSON.stringify(body),
       headers,
     });
-  } catch (firstError) {
-    if (!IS_DEV && !isAbsoluteUrl(COACH_API_BASE) && COACH_API_KEY && COACH_APP_ID) {
-      const fallbackUrl = `${COACH_API_TARGET}/api/v1${path}`;
-      return request(fallbackUrl, {
-        method: 'POST',
-        body: JSON.stringify(body),
-        headers: { ...headers, 'Authorization': `Bearer ${COACH_API_KEY}` },
-      });
-    }
-    throw firstError;
   }
+
+  if (hasWorker) {
+    return request(coachUrl(path), {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers,
+    });
+  }
+
+  if (COACH_API_KEY) {
+    headers['Authorization'] = `Bearer ${COACH_API_KEY}`;
+    return request(`${COACH_API_TARGET}/api/v1${path}`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers,
+    });
+  }
+
+  throw new Error('AI 教练未配置：请设置 VITE_COACH_API_BASE（Worker）或 VITE_COACH_API_KEY（直连）');
 }
 
 export async function sendCoachMessage({ userId, sessionId, text, messages, profileSummary }) {
@@ -159,11 +163,16 @@ export function isProfileApiConfigured() {
 }
 
 export function getCoachConfig() {
+  const hasWorker = isAbsoluteUrl(COACH_API_BASE);
+  const usingDirect = !IS_DEV && !hasWorker && Boolean(COACH_API_KEY);
+  const isConfigured = Boolean(COACH_APP_ID) && (IS_DEV || hasWorker || usingDirect);
+
   return {
     appId: COACH_APP_ID,
     base: COACH_API_BASE,
     keyConfigured: Boolean(COACH_API_KEY),
     isDev: IS_DEV,
-    mode: IS_DEV ? 'dev-proxy' : (isAbsoluteUrl(COACH_API_BASE) ? 'proxy' : 'direct'),
+    mode: IS_DEV ? 'dev-proxy' : (hasWorker ? 'worker' : (usingDirect ? 'direct' : 'unconfigured')),
+    isConfigured,
   };
 }

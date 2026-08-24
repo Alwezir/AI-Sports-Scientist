@@ -14,6 +14,24 @@ concurrency:
   group: "pages"
   cancel-in-progress: false
 
+# ============================================================
+# 需要在 GitHub Repository Settings → Secrets and variables → Actions 中配置：
+#
+# 【必填】
+#   VITE_COACH_APP_ID        应用 ID（如 21bcc71b92e54b8792c7a49d7476ca1d）
+#
+# 【二选一】推荐 Worker 方案
+#   VITE_COACH_API_BASE      Cloudflare Worker URL（如 https://dongzhi-coach-api.workers.dev）
+#   — Worker 在服务端注入 Authorization，密钥不会暴露给浏览器
+#
+# 【二选一】快速直连方案（不推荐，密钥会暴露）
+#   VITE_COACH_API_KEY       DashScope API Key（sk-...）
+#   VITE_COACH_API_TARGET    DashScope 目标地址（可选，默认 https://dashscope.aliyuncs.com）
+#
+# 【可选】画像服务
+#   VITE_PROFILE_API_BASE    生产环境不可用，留空即可，前端自动回退 localStorage
+# ============================================================
+
 jobs:
   build:
     runs-on: ubuntu-latest
