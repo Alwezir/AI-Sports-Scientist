@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
 import './MuscleMap.css';
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
+const MUSCLE_MAP_URL = `${BASE}/muscle-map`; // 绝对（带子路径）地址，GitHub Pages 不会跳到站点根级 404
 
 const views = [
   { id: 'front', label: '前视图', imageSrc: `${BASE}/muscle-atlas-front.jpg` },
@@ -110,9 +110,9 @@ export default function MuscleMap() {
                 className="muscle-map__atlas-image"
               />
             </div>
-            <Link to="/muscle-map" className="muscle-map__full-link">
+            <a href={MUSCLE_MAP_URL} className="muscle-map__full-link">
               查看完整肌肉图谱 →
-            </Link>
+            </a>
           </div>
 
           <div className="muscle-map__info">
