@@ -1,8 +1,9 @@
 .app {
-  min-height: 100dvh;
+  min-height: 100vh;
   background: var(--bg-primary);
 }
 
+/* Background ambient effects */
 .app::before {
   content: '';
   position: fixed;
@@ -11,8 +12,8 @@
   width: 200%;
   height: 200%;
   background:
-    radial-gradient(ellipse 40% 30% at 20% 20%, rgba(0, 212, 255, 0.025) 0%, transparent 50%),
-    radial-gradient(ellipse 30% 40% at 80% 80%, rgba(124, 58, 237, 0.025) 0%, transparent 50%);
+    radial-gradient(ellipse 40% 30% at 20% 20%, rgba(0, 212, 255, 0.03) 0%, transparent 50%),
+    radial-gradient(ellipse 30% 40% at 80% 80%, rgba(124, 58, 237, 0.03) 0%, transparent 50%);
   pointer-events: none;
   z-index: 0;
 }
@@ -20,10 +21,4 @@
 .app > *:not(.pill-nav-container) {
   position: relative;
   z-index: 1;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .app::before {
-    display: none;
-  }
 }
