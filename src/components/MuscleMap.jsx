@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import './MuscleMap.css';
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -109,9 +110,9 @@ export default function MuscleMap() {
                 className="muscle-map__atlas-image"
               />
             </div>
-            <a href="/muscle-map" className="muscle-map__full-link">
+            <Link to="/muscle-map" className="muscle-map__full-link">
               查看完整肌肉图谱 →
-            </a>
+            </Link>
           </div>
 
           <div className="muscle-map__info">
