@@ -189,9 +189,14 @@ export default function Hero() {
               size="lg"
               radius={14}
               lineColor="#00d4ff"
-              baseColor="#2a2a3e"
-              tintOpacity={0.1}
+              baseColor="#4a4a68"
+              tintOpacity={0.12}
               textColor="#f5f5f5"
+              intensity={1.8}
+              shineSize={18}
+              shineFade={28}
+              thickness={2}
+              proximity={350}
               onClick={(e) => scrollToSection(e, 'features')}
               className="hero__btn hero__btn--primary"
             >
@@ -212,10 +217,15 @@ export default function Hero() {
             <SpecularButton
               size="lg"
               radius={14}
-              lineColor="#7c3aed"
-              baseColor="#2a2a3e"
-              tintOpacity={0.08}
+              lineColor="#a78bfa"
+              baseColor="#4a4a68"
+              tintOpacity={0.1}
               textColor="#f5f5f5"
+              intensity={1.6}
+              shineSize={16}
+              shineFade={30}
+              thickness={1.8}
+              proximity={350}
               onClick={(e) => scrollToSection(e, 'pain-points')}
               className="hero__btn hero__btn--secondary"
             >
