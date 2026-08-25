@@ -51,3 +51,10 @@
   z-index: 2;
   height: 100%;
 }
+
+/* 移动端触控设备隐藏 WebGL canvas，避免部分浏览器 alpha 通道异常导致白色块 */
+@media (pointer: coarse) {
+  .specular-frame__fx {
+    display: none;
+  }
+}
