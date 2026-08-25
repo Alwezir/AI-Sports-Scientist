@@ -1,5 +1,6 @@
-﻿import { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import PageLayout from '../components/PageLayout';
+import SpecularButton from '../components/SpecularButton/SpecularButton';
 import './MuscleMapPage.css';
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -587,11 +588,26 @@ export default function MuscleMapPage() {
 
           <div className="mmp-page__viewer">
             <div className="mmp-page__view-tabs">
-              {views.map((view) => (
-                <button key={view.id} className={`mmp-page__view-tab ${currentView === view.id ? 'mmp-page__view-tab--active' : ''}`} onClick={() => handleViewChange(view.id)}>
-                  {view.label}
-                </button>
-              ))}
+              {views.map((view) => {
+                const isActive = currentView === view.id;
+                return (
+                  <SpecularButton
+                    key={view.id}
+                    size="md"
+                    className={`mmp-page__view-tab ${isActive ? 'mmp-page__view-tab--active' : ''}`}
+                    onClick={() => handleViewChange(view.id)}
+                    radius={10}
+                    lineColor={isActive ? '#ffffff' : '#00d4ff'}
+                    baseColor={isActive ? '#0099bb' : '#2a2a3e'}
+                    tintOpacity={isActive ? 0.2 : 0.04}
+                    textColor={isActive ? '#ffffff' : 'var(--text-secondary)'}
+                    autoAnimate={isActive}
+                    intensity={isActive ? 1.2 : 1}
+                  >
+                    {view.label}
+                  </SpecularButton>
+                );
+              })}
             </div>
 
             <div className="mmp-page__image-wrapper mmp-page__image-wrapper--interactive">

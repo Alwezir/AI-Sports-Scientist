@@ -1,4 +1,5 @@
 import MagicRings from './MagicRings';
+import SpecularFrame from './SpecularButton/SpecularFrame';
 import './TechHighlights.css';
 
 const highlights = [
@@ -90,7 +91,14 @@ export default function TechHighlights() {
 
         <div className="tech__grid">
           {highlights.map((h, i) => (
-            <div key={i} className="tech__card glow-border">
+            <SpecularFrame
+              key={i}
+              className="tech__card"
+              radius={16}
+              lineColor="#7c3aed"
+              baseColor="#2a2a3e"
+              tintOpacity={0.04}
+            >
               <div className="tech__card-icon">{h.icon}</div>
               <h3 className="tech__card-title">{h.title}</h3>
               <p className="tech__card-desc">{h.desc}</p>
@@ -101,7 +109,7 @@ export default function TechHighlights() {
                   </span>
                 ))}
               </div>
-            </div>
+            </SpecularFrame>
           ))}
         </div>
       </div>
