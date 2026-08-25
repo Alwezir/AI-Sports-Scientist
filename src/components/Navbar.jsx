@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import SpecularButton from './SpecularButton/SpecularButton';
+import useFinePointer from '../hooks/useFinePointer';
 import './Navbar.css';
 
 export default function Navbar() {
@@ -7,6 +9,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const isFinePointer = useFinePointer();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -92,16 +95,36 @@ export default function Navbar() {
           ))}
         </div>
 
-        <a
-          href="#features"
-          onClick={(e) => {
-            e.preventDefault();
-            scrollToSection('features');
-          }}
-          className="navbar__cta"
-        >
-          开始体验
-        </a>
+        {isFinePointer ? (
+          <SpecularButton
+            size="sm"
+            radius={10}
+            lineColor="#00d4ff"
+            baseColor="#3a3a52"
+            tintOpacity={0.08}
+            textColor="#f5f5f5"
+            intensity={1.5}
+            shineSize={16}
+            shineFade={30}
+            thickness={1.5}
+            proximity={250}
+            onClick={() => scrollToSection('features')}
+            className="navbar__cta"
+          >
+            开始体验
+          </SpecularButton>
+        ) : (
+          <a
+            href="#features"
+            onClick={(e) => {
+              e.preventDefault();
+              scrollToSection('features');
+            }}
+            className="navbar__cta"
+          >
+            开始体验
+          </a>
+        )}
 
         <button
           className={`navbar__hamburger ${mobileOpen ? 'navbar__hamburger--open' : ''}`}

@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import SpecularButton from './SpecularButton/SpecularButton';
+import useFinePointer from '../hooks/useFinePointer';
 import './MuscleMap.css';
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -71,6 +73,7 @@ const muscleGroups = [
 export default function MuscleMap() {
   const [activeGroup, setActiveGroup] = useState(null);
   const [currentView, setCurrentView] = useState('front');
+  const isFinePointer = useFinePointer();
 
   const activeData = activeGroup
     ? muscleGroups.find((g) => g.id === activeGroup)
@@ -110,9 +113,29 @@ export default function MuscleMap() {
                 className="muscle-map__atlas-image"
               />
             </div>
-            <a href={MUSCLE_MAP_URL} className="muscle-map__full-link">
-              查看完整肌肉图谱 →
-            </a>
+            {isFinePointer ? (
+              <SpecularButton
+                size="md"
+                radius={12}
+                lineColor="#00d4ff"
+                baseColor="#3a3a52"
+                tintOpacity={0.08}
+                textColor="#f5f5f5"
+                intensity={1.5}
+                shineSize={16}
+                shineFade={30}
+                thickness={1.5}
+                proximity={250}
+                onClick={() => window.open(MUSCLE_MAP_URL, '_self')}
+                className="muscle-map__full-link"
+              >
+                查看完整肌肉图谱 →
+              </SpecularButton>
+            ) : (
+              <a href={MUSCLE_MAP_URL} className="muscle-map__full-link">
+                查看完整肌肉图谱 →
+              </a>
+            )}
           </div>
 
           <div className="muscle-map__info">
