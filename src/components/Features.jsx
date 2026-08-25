@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 import SpecularFrame from './SpecularButton/SpecularFrame';
+import SkeletonCanvas from './SkeletonCanvas';
+import DotGridBackground from './DotGridBackground';
 import './Features.css';
 
 const features = [
@@ -151,12 +153,16 @@ export default function Features() {
               </>
             );
             const cardClass = `features__card ${f.link ? 'features__card--link' : ''} ${i === 0 ? 'features__card--featured' : ''}`;
+            let cardBackground = null;
+            if (i === 0) cardBackground = <SkeletonCanvas className="features__card-skeleton" />;
+            if (i === 2) cardBackground = <DotGridBackground className="features__card-dot-grid" />;
             return f.link ? (
               <SpecularFrame
                 key={i}
                 as={Link}
                 to={f.link}
                 className={cardClass}
+                background={cardBackground}
                 radius={16}
                 lineColor="#00d4ff"
                 baseColor="#2a2a3e"
@@ -168,6 +174,7 @@ export default function Features() {
               <SpecularFrame
                 key={i}
                 className={cardClass}
+                background={cardBackground}
                 radius={16}
                 lineColor="#00d4ff"
                 baseColor="#2a2a3e"

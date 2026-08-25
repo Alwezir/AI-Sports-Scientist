@@ -4,6 +4,7 @@ import './SpecularFrame.css';
 
 const SpecularFrame = ({
   children,
+  background,
   as: Component = 'div',
   radius = 18,
   tint = '#ffffff',
@@ -52,6 +53,7 @@ const SpecularFrame = ({
       {...rest}
     >
       <span ref={fxRef} className="specular-frame__fx" aria-hidden="true" />
+      {background && <div className="specular-frame__background">{background}</div>}
       <div className="specular-frame__content">{children}</div>
     </Component>
   );

@@ -37,6 +37,15 @@
   height: 100%;
 }
 
+.specular-frame__background {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: var(--sf-radius);
+}
+
 .specular-frame__content {
   position: relative;
   z-index: 2;
