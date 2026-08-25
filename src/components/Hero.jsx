@@ -1,9 +1,12 @@
 import { useEffect, useRef, useCallback } from 'react';
 import MagicRings from './MagicRings';
+import SpecularButton from './SpecularButton/SpecularButton';
+import useFinePointer from '../hooks/useFinePointer';
 import './Hero.css';
 
 export default function Hero() {
   const canvasRef = useRef(null);
+  const isFinePointer = useFinePointer();
 
   const scrollToSection = useCallback((e, sectionId) => {
     e.preventDefault();
@@ -181,15 +184,48 @@ export default function Hero() {
           并越来越了解你
         </p>
         <div className="hero__actions">
-          <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="hero__btn hero__btn--primary">
-            开始体验
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="hero__btn-arrow">
-              <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </a>
-          <a href="#pain-points" onClick={(e) => scrollToSection(e, 'pain-points')} className="hero__btn hero__btn--secondary">
-            了解更多
-          </a>
+          {isFinePointer ? (
+            <SpecularButton
+              size="lg"
+              radius={14}
+              lineColor="#00d4ff"
+              baseColor="#2a2a3e"
+              tintOpacity={0.1}
+              textColor="#f5f5f5"
+              onClick={(e) => scrollToSection(e, 'features')}
+              className="hero__btn hero__btn--primary"
+            >
+              开始体验
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="hero__btn-arrow">
+                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </SpecularButton>
+          ) : (
+            <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="hero__btn hero__btn--primary">
+              开始体验
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="hero__btn-arrow">
+                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </a>
+          )}
+          {isFinePointer ? (
+            <SpecularButton
+              size="lg"
+              radius={14}
+              lineColor="#7c3aed"
+              baseColor="#2a2a3e"
+              tintOpacity={0.08}
+              textColor="#f5f5f5"
+              onClick={(e) => scrollToSection(e, 'pain-points')}
+              className="hero__btn hero__btn--secondary"
+            >
+              了解更多
+            </SpecularButton>
+          ) : (
+            <a href="#pain-points" onClick={(e) => scrollToSection(e, 'pain-points')} className="hero__btn hero__btn--secondary">
+              了解更多
+            </a>
+          )}
         </div>
         <div className="hero__stats">
           <div className="hero__stat">
