@@ -34,7 +34,6 @@ const defaultProfile = {
   level: 'beginner',
   weeklyFrequency: 3,
   preferredSports: [],
-  population: [],
   mood: 'neutral',
   records: [],
 };
@@ -58,19 +57,6 @@ const LEVEL_OPTIONS = [
   { value: 'beginner', label: '入门新手', desc: '刚开始健身' },
   { value: 'intermediate', label: '进阶训练者', desc: '有1-2年经验' },
   { value: 'advanced', label: '高级训练者', desc: '3年以上经验' },
-];
-
-const POPULATION_CATEGORIES = [
-  { value: 'teen', label: '青少年', icon: '🧒', desc: '12-18岁，身体发育期' },
-  { value: 'adult-male', label: '成年男性', icon: '♂', desc: '18岁以上男性' },
-  { value: 'adult-female', label: '成年女性', icon: '♀', desc: '18岁以上女性' },
-  { value: 'middle-aged', label: '中老年', icon: '🧓', desc: '45岁以上，关注健康维护' },
-  { value: 'weight-loss', label: '减重人群', icon: '⚖️', desc: '以减脂为主要目标' },
-  { value: 'muscle-gain', label: '增肌人群', icon: '💪', desc: '以增肌为主要目标' },
-  { value: 'rehabilitation', label: '康复人群', icon: '🩹', desc: '伤病恢复或功能训练' },
-  { value: 'sports', label: '运动爱好者', icon: '🏃', desc: '专项运动技能提升' },
-  { value: 'desk-worker', label: '久坐上班族', icon: '💻', desc: '改善体态与颈椎健康' },
-  { value: 'postpartum', label: '产后恢复', icon: '🤱', desc: '产后恢复与塑形' },
 ];
 
 /**
@@ -307,7 +293,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState(() => {
     try {
       const saved = getManualProfile(getPageUserId_());
-      return saved ? { ...defaultProfile, ...saved, population: saved.population || [] } : defaultProfile;
+      return saved ? { ...defaultProfile, ...saved } : defaultProfile;
     } catch {
       return defaultProfile;
     }
@@ -419,16 +405,6 @@ export default function ProfilePage() {
         ? prev.preferredSports.filter((s) => s !== sport)
         : [...prev.preferredSports, sport],
     }));
-  };
-
-  const togglePopulation = (pop) => {
-    setProfile((prev) => {
-      const arr = prev.population || [];
-      return {
-        ...prev,
-        population: arr.includes(pop) ? arr.filter((p) => p !== pop) : [...arr, pop],
-      };
-    });
   };
 
   const addRecord = () => {
@@ -944,26 +920,6 @@ export default function ProfilePage() {
             </div>
 
             <div className="profile-page__section">
-              <h3 className="profile-page__section-title">
-                适用人群分类
-                <span className="profile-page__section-sub">选择适用的人群分类，帮助 AI 教练提供更针对性的训练建议</span>
-              </h3>
-              <div className="profile-page__population-grid">
-                {POPULATION_CATEGORIES.map((p) => (
-                  <button
-                    key={p.value}
-                    className={`profile-page__population-card ${profile.population.includes(p.value) ? 'profile-page__population-card--active' : ''}`}
-                    onClick={() => togglePopulation(p.value)}
-                  >
-                    <span className="profile-page__population-icon">{p.icon}</span>
-                    <span className="profile-page__population-name">{p.label}</span>
-                    <span className="profile-page__population-desc">{p.desc}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="profile-page__section">
               <h3 className="profile-page__section-title">AI 建议</h3>
               <div className="profile-page__ai-suggestion">
                 <p>
@@ -972,18 +928,6 @@ export default function ProfilePage() {
                   {profile.level === 'intermediate' && ' 作为进阶训练者，可以尝试分化训练，每周4-5次，注重渐进超负荷。'}
                   {profile.level === 'advanced' && ' 作为高级训练者，建议周期化训练计划，注重弱项强化和恢复管理。'}
                 </p>
-                {profile.population.length > 0 && (
-                  <p>
-                    适用人群：{profile.population.map((v) => POPULATION_CATEGORIES.find((c) => c.value === v)?.label).filter(Boolean).join('、')}，
-                    {profile.population.includes('weight-loss') && ' 建议控制热量摄入 + 中高强度间歇训练。'}
-                    {profile.population.includes('muscle-gain') && ' 建议注重渐进超负荷和蛋白质摄入。'}
-                    {profile.population.includes('rehabilitation') && ' 建议以功能性训练为主，避免高冲击动作。'}
-                    {profile.population.includes('middle-aged') && ' 建议以低冲击有氧 + 力量训练为主，注意关节保护。'}
-                    {profile.population.includes('desk-worker') && ' 建议加入脊柱拉伸和核心稳定训练。'}
-                    {profile.population.includes('teen') && ' 建议注重动作模式学习，避免过度训练。'}
-                    {profile.population.includes('postpartum') && ' 建议从核心恢复和盆底训练开始。'}
-                  </p>
-                )}
                 {profile.goal && <p>你的目标：「{profile.goal}」，建议制定阶段性里程碑。</p>}
                 {profile.preferredSports.length > 0 && (
                   <p>偏好运动：{profile.preferredSports.join('、')}，可以围绕这些运动设计训练计划。</p>
