@@ -71,6 +71,45 @@
   color: var(--text-primary);
 }
 
+.hero__title--stroke {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: unset;
+}
+
+.hero__title-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.hero__stroke-text {
+  line-height: 0;
+}
+
+.hero__stroke-text--inline {
+  display: inline-flex;
+  width: auto;
+  max-width: 100%;
+}
+
+.hero__stroke-text--inline .stroke-text__svg {
+  width: auto;
+  max-width: 100%;
+}
+
+.hero__stroke-text--gradient .stroke-text__fill {
+  fill: url(#dongzhi-title-gradient);
+}
+
+.hero__stroke-text--gradient .stroke-text__svg {
+  position: relative;
+}
+
 .hero__subtitle {
   font-size: clamp(16px, 2vw, 20px);
   color: var(--text-secondary);

@@ -1,12 +1,15 @@
 import { useEffect, useRef, useCallback } from 'react';
 import MagicRings from './MagicRings';
 import SpecularButton from './SpecularButton/SpecularButton';
+import StrokeText from './StrokeText/StrokeText';
 import useFinePointer from '../hooks/useFinePointer';
+import useResponsiveStrokeText from '../hooks/useResponsiveStrokeText';
 import './Hero.css';
 
 export default function Hero() {
   const canvasRef = useRef(null);
   const isFinePointer = useFinePointer();
+  const strokeCfg = useResponsiveStrokeText();
 
   const scrollToSection = useCallback((e, sectionId) => {
     e.preventDefault();
@@ -145,6 +148,15 @@ export default function Hero() {
 
   return (
     <section className="hero">
+      {/* SVG 全局渐变定义，供标题渐变文字引用 */}
+      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true">
+        <defs>
+          <linearGradient id="dongzhi-title-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#00d4ff" />
+            <stop offset="100%" stopColor="#7c3aed" />
+          </linearGradient>
+        </defs>
+      </svg>
       <MagicRings
         color="#00d4ff"
         colorTwo="#7c3aed"
@@ -175,9 +187,59 @@ export default function Hero() {
           <span className="hero__badge-dot" />
           挑战杯 · 阿里云命题赛 · 数字分身
         </div>
-        <h1 className="hero__title">
-          动知 · <span className="gradient-text">懂你身体的</span><br />
-          AI 运动教练
+        <h1 className="hero__title hero__title--stroke">
+          <div className="hero__title-line">
+            <StrokeText
+              text="动知 · "
+              strokeColor="#00d4ff"
+              fillColor="#f0f0f8"
+              strokeWidth={strokeCfg.strokeWidth}
+              drawDuration={strokeCfg.drawDuration}
+              fillDelay={0.18}
+              stagger={strokeCfg.stagger}
+              ease="power2.out"
+              trigger="mount"
+              fillMode="wipe"
+              fontSize={strokeCfg.fontSizeLine1}
+              fontWeight={900}
+              letterSpacing={strokeCfg.letterSpacingLine1}
+              className="hero__stroke-text hero__stroke-text--inline"
+            />
+            <StrokeText
+              text="懂你身体的"
+              strokeColor="#7c3aed"
+              fillColor="url(#dongzhi-title-gradient)"
+              strokeWidth={strokeCfg.strokeWidth}
+              drawDuration={strokeCfg.drawDuration}
+              fillDelay={0.18}
+              stagger={strokeCfg.stagger}
+              ease="power2.out"
+              trigger="mount"
+              fillMode="wipe"
+              fontSize={strokeCfg.fontSizeLine1}
+              fontWeight={900}
+              letterSpacing={strokeCfg.letterSpacingLine1}
+              className="hero__stroke-text hero__stroke-text--inline hero__stroke-text--gradient"
+            />
+          </div>
+          <div className="hero__title-line">
+            <StrokeText
+              text="AI 运动教练"
+              strokeColor="#00d4ff"
+              fillColor="#f0f0f8"
+              strokeWidth={strokeCfg.strokeWidth}
+              drawDuration={strokeCfg.drawDuration}
+              fillDelay={0.18}
+              stagger={strokeCfg.stagger}
+              ease="power2.out"
+              trigger="mount"
+              fillMode="wipe"
+              fontSize={strokeCfg.fontSizeLine2}
+              fontWeight={900}
+              letterSpacing={strokeCfg.letterSpacingLine2}
+              className="hero__stroke-text"
+            />
+          </div>
         </h1>
         <p className="hero__subtitle">
           上传视频，AI 像教练一样纠正你的动作，<br />
