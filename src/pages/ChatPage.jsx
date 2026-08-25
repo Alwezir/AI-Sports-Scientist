@@ -10,6 +10,7 @@ import { getProfileSummary, getCoachConfig } from '../utils/profileApi';
 import { respond as coachRespond, resetSessionProfile } from '../utils/coach/coachEngine.js';
 import PixelBlast from '../components/PixelBlast';
 import LineSidebar from '../components/LineSidebar/LineSidebar';
+import useFinePointer from '../hooks/useFinePointer';
 import './ChatPage.css';
 
 const INTENT_CATEGORIES = [
@@ -55,6 +56,7 @@ export default function ChatPage() {
   const [profileNotice, setProfileNotice] = useState(false);
   const [clearNotice, setClearNotice] = useState(false);
   const [apiNotice, setApiNotice] = useState(null);
+  const isFinePointer = useFinePointer();
   const coachConfig = getCoachConfig();
   const coachUnconfigured = !coachConfig.isConfigured;
   const messagesEndRef = useRef(null);
@@ -558,24 +560,26 @@ export default function ChatPage() {
             <p className="chat-page__disclaimer">AI生成内容仅供科普参考，不构成医疗诊断建议</p>
           </div>
         </div>
-        <LineSidebar
-          className="chat-page__line-sidebar"
-          items={sidebarItems}
-          accentColor="#00d4ff"
-          textColor="var(--text-muted)"
-          markerColor="rgba(255,255,255,0.25)"
-          showIndex={false}
-          showMarker
-          proximityRadius={120}
-          maxShift={16}
-          markerLength={40}
-          markerGap={12}
-          tickScale={0.4}
-          itemGap={16}
-          fontSize={0.85}
-          smoothing={180}
-          onItemClick={(index) => scrollToMessage(index)}
-        />
+        {isFinePointer && (
+          <LineSidebar
+            className="chat-page__line-sidebar"
+            items={sidebarItems}
+            accentColor="#00d4ff"
+            textColor="var(--text-muted)"
+            markerColor="rgba(255,255,255,0.25)"
+            showIndex={false}
+            showMarker
+            proximityRadius={120}
+            maxShift={16}
+            markerLength={40}
+            markerGap={12}
+            tickScale={0.4}
+            itemGap={16}
+            fontSize={0.85}
+            smoothing={180}
+            onItemClick={(index) => scrollToMessage(index)}
+          />
+        )}
         </div>
           </section>
         </div>
