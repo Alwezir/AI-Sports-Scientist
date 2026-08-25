@@ -1,6 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
 import MagicRings from './MagicRings';
-import SpecularFrame from './SpecularButton/SpecularFrame';
 import './Hero.css';
 
 export default function Hero() {
@@ -182,34 +181,15 @@ export default function Hero() {
           并越来越了解你
         </p>
         <div className="hero__actions">
-          <SpecularFrame
-            as="a"
-            href="#features"
-            onClick={(e) => scrollToSection(e, 'features')}
-            className="hero__btn hero__btn--primary"
-            radius={12}
-            lineColor="#ffffff"
-            baseColor="#0099bb"
-            tintOpacity={0.15}
-            autoAnimate
-          >
+          <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="hero__btn hero__btn--primary">
             开始体验
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="hero__btn-arrow">
               <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-          </SpecularFrame>
-          <SpecularFrame
-            as="a"
-            href="#pain-points"
-            onClick={(e) => scrollToSection(e, 'pain-points')}
-            className="hero__btn hero__btn--secondary"
-            radius={12}
-            lineColor="#00d4ff"
-            baseColor="#2a2a3e"
-            tintOpacity={0.04}
-          >
+          </a>
+          <a href="#pain-points" onClick={(e) => scrollToSection(e, 'pain-points')} className="hero__btn hero__btn--secondary">
             了解更多
-          </SpecularFrame>
+          </a>
         </div>
         <div className="hero__stats">
           <div className="hero__stat">

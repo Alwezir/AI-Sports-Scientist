@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import SpecularFrame from './SpecularButton/SpecularFrame';
 import './Features.css';
 
 const features = [
@@ -127,9 +126,13 @@ export default function Features() {
         </div>
 
         <div className="features__grid">
-          {features.map((f, i) => {
-            const cardContent = (
-              <>
+          {features.map((f, i) => (
+            f.link ? (
+              <Link
+                key={i}
+                to={f.link}
+                className={`features__card features__card--link glow-border ${i === 0 ? 'features__card--featured' : ''}`}
+              >
                 <div className="features__card-num">{f.num}</div>
                 <div className="features__card-icon">{f.icon}</div>
                 <h3 className="features__card-title">{f.title}</h3>
@@ -141,42 +144,31 @@ export default function Features() {
                     </span>
                   ))}
                 </div>
-                {f.link && (
-                  <div className="features__card-arrow">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                      <path d="M5 10h10M11 6l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                )}
-              </>
-            );
-            const cardClass = `features__card ${f.link ? 'features__card--link' : ''} ${i === 0 ? 'features__card--featured' : ''}`;
-            return f.link ? (
-              <SpecularFrame
-                key={i}
-                as={Link}
-                to={f.link}
-                className={cardClass}
-                radius={16}
-                lineColor="#00d4ff"
-                baseColor="#2a2a3e"
-                tintOpacity={0.04}
-              >
-                {cardContent}
-              </SpecularFrame>
+                <div className="features__card-arrow">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M5 10h10M11 6l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+              </Link>
             ) : (
-              <SpecularFrame
+              <div
                 key={i}
-                className={cardClass}
-                radius={16}
-                lineColor="#00d4ff"
-                baseColor="#2a2a3e"
-                tintOpacity={0.04}
+                className={`features__card glow-border ${i === 0 ? 'features__card--featured' : ''}`}
               >
-                {cardContent}
-              </SpecularFrame>
-            );
-          })}
+                <div className="features__card-num">{f.num}</div>
+                <div className="features__card-icon">{f.icon}</div>
+                <h3 className="features__card-title">{f.title}</h3>
+                <p className="features__card-desc">{f.desc}</p>
+                <div className="features__card-tags">
+                  {f.tags.map((t) => (
+                    <span key={t} className="features__card-tag">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )
+          ))}
         </div>
       </div>
     </section>

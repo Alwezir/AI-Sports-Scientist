@@ -94,12 +94,19 @@
   padding: 16px 32px;
   font-size: 15px;
   font-weight: 600;
-  color: var(--text-primary);
-  text-decoration: none;
+  border-radius: 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .hero__btn--primary {
-  color: #ffffff;
+  color: var(--bg-primary);
+  background: var(--accent-gradient);
+  box-shadow: 0 8px 32px rgba(0, 212, 255, 0.3);
+}
+
+.hero__btn--primary:hover {
+  box-shadow: 0 8px 48px rgba(0, 212, 255, 0.45);
+  transform: translateY(-2px);
 }
 
 .hero__btn-arrow {
@@ -108,6 +115,18 @@
 
 .hero__btn--primary:hover .hero__btn-arrow {
   transform: translateX(4px);
+}
+
+.hero__btn--secondary {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-color);
+}
+
+.hero__btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
 }
 
 .hero__stats {
