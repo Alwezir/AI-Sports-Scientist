@@ -9,7 +9,6 @@ import {
 import { getProfileSummary, getCoachConfig } from '../utils/profileApi';
 import { respond as coachRespond, resetSessionProfile } from '../utils/coach/coachEngine.js';
 import PixelBlast from '../components/PixelBlast';
-import LineSidebar from '../components/LineSidebar/LineSidebar';
 import './ChatPage.css';
 
 const INTENT_CATEGORIES = [
@@ -58,27 +57,10 @@ export default function ChatPage() {
   const coachConfig = getCoachConfig();
   const coachUnconfigured = !coachConfig.isConfigured;
   const messagesEndRef = useRef(null);
-  const messageRefs = useRef([]);
   const inputRef = useRef(null);
   const userIdRef = useRef(null);
   const activeConversation = conversations.find((conversation) => conversation.id === activeConversationId) || conversations[0];
   const messages = activeConversation?.messages || [];
-
-  const sidebarItems = messages.length > 0
-    ? messages.map((msg) => {
-        const prefix = msg.role === 'user' ? '用户' : 'AI';
-        const text = msg.content.replace(/\s+/g, ' ').slice(0, 18);
-        return `${prefix}：${text}${msg.content.length > 18 ? '…' : ''}`;
-      })
-    : ['暂无消息，开始提问吧'];
-
-  const scrollToMessage = (index) => {
-    if (messages.length === 0) return;
-    const el = messageRefs.current[index];
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  };
 
   const resizeInput = () => {
     const textarea = inputRef.current;
@@ -398,7 +380,6 @@ export default function ChatPage() {
         </div>
 
         {/* Chat area */}
-        <div className="chat-page__chat-layout">
         <div className="chat-page__container">
           <div className="chat-page__toolbar">
             <span className="chat-page__toolbar-title">对话记录</span>
@@ -430,10 +411,9 @@ export default function ChatPage() {
                 <span className="chat-page__empty-label">你可以试试提问：</span>
               </div>
             )}
-            {messages.map((msg, index) => (
+            {messages.map((msg) => (
               <div
                 key={msg.id}
-                ref={(el) => { messageRefs.current[index] = el; }}
                 className={`chat-page__message ${msg.role === 'user' ? 'chat-page__message--user' : 'chat-page__message--assistant'} ${msg.isError ? 'chat-page__message--error' : ''}`}
               >
                 {msg.role === 'assistant' && (
@@ -557,25 +537,6 @@ export default function ChatPage() {
             <p className="chat-page__compliance">本对话内容受合规管控，不会泄露你的个人运动数据</p>
             <p className="chat-page__disclaimer">AI生成内容仅供科普参考，不构成医疗诊断建议</p>
           </div>
-        </div>
-        <LineSidebar
-          className="chat-page__line-sidebar"
-          items={sidebarItems}
-          accentColor="#00d4ff"
-          textColor="var(--text-muted)"
-          markerColor="rgba(255,255,255,0.25)"
-          showIndex={false}
-          showMarker
-          proximityRadius={120}
-            maxShift={16}
-            markerLength={40}
-            markerGap={12}
-            tickScale={0.4}
-            itemGap={16}
-            fontSize={0.85}
-            smoothing={180}
-          onItemClick={(index) => scrollToMessage(index)}
-        />
         </div>
           </section>
         </div>

@@ -37,24 +37,8 @@
   height: 100%;
 }
 
-.specular-frame__background {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  overflow: hidden;
-  border-radius: var(--sf-radius);
-}
-
 .specular-frame__content {
   position: relative;
   z-index: 2;
   height: 100%;
-}
-
-/* 移动端触控设备隐藏 WebGL canvas，避免部分浏览器 alpha 通道异常导致白色块 */
-@media (pointer: coarse) {
-  .specular-frame__fx {
-    display: none;
-  }
 }

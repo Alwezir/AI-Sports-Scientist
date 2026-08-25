@@ -73,17 +73,6 @@ export function useSpecular(containerRef, fxRef, options = {}) {
     const dpr = window.devicePixelRatio || 1;
     const renderer = new Renderer({ alpha: true, premultipliedAlpha: true, antialias: true, dpr });
     const gl = renderer.gl;
-
-    // 移动端/旧浏览器可能只支持 WebGL1，而当前 shader 是 WebGL2（#version 300 es），
-    // 若不支持 WebGL2 则直接放弃渲染，避免 canvas 留下白色块盖住卡片背景。
-    const hasWebGL2 = typeof WebGL2RenderingContext !== 'undefined';
-    const isWebGL2 = hasWebGL2 && (gl instanceof WebGL2RenderingContext || gl.constructor === WebGL2RenderingContext);
-    const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
-    if (!isWebGL2 || isTouchDevice) {
-      renderer.dispose();
-      return;
-    }
-
     gl.clearColor(0, 0, 0, 0);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
