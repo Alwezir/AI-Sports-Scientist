@@ -116,7 +116,9 @@ button {
 .section-title-scroll {
   display: block;
   margin-bottom: 16px;
-  overflow: visible;
+  overflow: visible !important;
+  padding-top: 1.4em !important;
+  padding-bottom: 1.2em !important;
 }
 
 .section-title-scroll .scroll-float-text {
@@ -125,6 +127,20 @@ button {
 
 .section-title-scroll .char {
   line-height: 1.2;
+}
+
+@media (max-width: 768px) {
+  .section-title-scroll {
+    padding-top: 1.1em !important;
+    padding-bottom: 1em !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .section-title-scroll {
+    padding-top: 1em !important;
+    padding-bottom: 0.9em !important;
+  }
 }
 
 .section-subtitle {
