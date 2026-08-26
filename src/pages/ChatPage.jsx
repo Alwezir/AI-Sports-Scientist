@@ -520,21 +520,10 @@ export default function ChatPage() {
               </div>
             )}
             <div className="chat-page__input-wrapper">
-              <button
-                type="button"
-                className="chat-page__attach-btn"
-                title="上传动作评估报告"
-                aria-label="上传动作评估报告"
-                onClick={() => setApiNotice('动作评估报告会在评估完成后自动关联到本次对话')}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="m14.5 6.5-7.1 7.1a3 3 0 0 0 4.2 4.2l7.1-7.1a4.5 4.5 0 0 0-6.4-6.4l-7.1 7.1a6 6 0 0 0 8.5 8.5l6.1-6.1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
               <textarea
                 ref={inputRef}
-                className="chat-page__textarea"
-                placeholder="描述你的运动问题，也可以上传动作评估报告向教练提问…"
+                className="chat-page__textarea chat-page__textarea--no-attach"
+                placeholder="描述你的运动问题，也可以和我聊聊你的健身目标，我们一起制定计划~"
                 value={input}
                 onChange={(e) => {
                   setInput(e.target.value);

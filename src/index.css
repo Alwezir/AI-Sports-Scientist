@@ -113,6 +113,20 @@ button {
   letter-spacing: -0.5px;
 }
 
+.section-title-scroll {
+  display: block;
+  margin-bottom: 16px;
+  overflow: visible;
+}
+
+.section-title-scroll .scroll-float-text {
+  font-size: clamp(28px, 4vw, 44px);
+}
+
+.section-title-scroll .char {
+  line-height: 1.2;
+}
+
 .section-subtitle {
   font-size: clamp(15px, 1.8vw, 18px);
   color: var(--text-secondary);

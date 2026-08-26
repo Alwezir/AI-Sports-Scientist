@@ -664,6 +664,10 @@
   color: var(--text-muted);
 }
 
+.chat-page__textarea--no-attach {
+  padding-left: 16px;
+}
+
 .chat-page__textarea:disabled {
   opacity: 0.5;
 }

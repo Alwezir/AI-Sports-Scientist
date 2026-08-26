@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import SpecularButton from './SpecularButton/SpecularButton';
+import ScrollFloat from './ScrollFloat/ScrollFloat';
 import useFinePointer from '../hooks/useFinePointer';
+import useResponsiveScrollFloat from '../hooks/useResponsiveScrollFloat';
 import './MuscleMap.css';
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -74,6 +76,7 @@ export default function MuscleMap() {
   const [activeGroup, setActiveGroup] = useState(null);
   const [currentView, setCurrentView] = useState('front');
   const isFinePointer = useFinePointer();
+  const scrollCfg = useResponsiveScrollFloat();
 
   const activeData = activeGroup
     ? muscleGroups.find((g) => g.id === activeGroup)
@@ -85,9 +88,18 @@ export default function MuscleMap() {
       <div className="section-container">
         <div className="muscle-map__header">
           <span className="section-label">Muscle Atlas</span>
-          <h2 className="section-title">
-            交互式<span className="gradient-text">肌肉图谱</span>
-          </h2>
+          <ScrollFloat
+            segments={[
+              { text: '交互式' },
+              { text: '肌肉图谱', gradient: true }
+            ]}
+            animationDuration={scrollCfg.animationDuration}
+            ease={scrollCfg.ease}
+            scrollStart={scrollCfg.scrollStart}
+            scrollEnd={scrollCfg.scrollEnd}
+            stagger={scrollCfg.stagger}
+            containerClassName="section-title-scroll"
+          />
           <p className="section-subtitle">
             点击肌群查看功能与训练建议，让解剖学直观易懂
           </p>

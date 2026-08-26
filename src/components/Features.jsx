@@ -1,4 +1,8 @@
 import { Link } from 'react-router-dom';
+import ScrollFloat from './ScrollFloat/ScrollFloat';
+import SoftAurora from './SoftAurora/SoftAurora';
+import useResponsiveScrollFloat from '../hooks/useResponsiveScrollFloat';
+import useFinePointer from '../hooks/useFinePointer';
 import './Features.css';
 
 const features = [
@@ -112,14 +116,47 @@ const features = [
 ];
 
 export default function Features() {
+  const scrollCfg = useResponsiveScrollFloat();
+  const isFinePointer = useFinePointer();
+
   return (
     <section className="features" id="features">
-      <div className="section-container">
+      {isFinePointer && (
+        <div className="features__aurora">
+          <SoftAurora
+            speed={0.5}
+            scale={2.0}
+            brightness={1.4}
+            color1="#00d4ff"
+            color2="#7c3aed"
+            noiseFrequency={2.2}
+            noiseAmplitude={1.2}
+            bandHeight={0.45}
+            bandSpread={1.5}
+            octaveDecay={0.35}
+            layerOffset={0.3}
+            colorSpeed={1.2}
+            enableMouseInteraction={true}
+            mouseInfluence={0.3}
+          />
+        </div>
+      )}
+      <div className="features__aurora-overlay" />
+      <div className="section-container features__container">
         <div className="features__header">
           <span className="section-label">Core Features</span>
-          <h2 className="section-title">
-            五大核心<span className="gradient-text">功能模块</span>
-          </h2>
+          <ScrollFloat
+            segments={[
+              { text: '五大核心' },
+              { text: '功能模块', gradient: true }
+            ]}
+            animationDuration={scrollCfg.animationDuration}
+            ease={scrollCfg.ease}
+            scrollStart={scrollCfg.scrollStart}
+            scrollEnd={scrollCfg.scrollEnd}
+            stagger={scrollCfg.stagger}
+            containerClassName="section-title-scroll"
+          />
           <p className="section-subtitle">
             从动作评估到知识科普，构建完整的 AI 运动教练闭环
           </p>

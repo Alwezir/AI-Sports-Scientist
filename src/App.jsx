@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-ro
 import { useEffect } from 'react';
 import PillNav from './components/PillNav';
 import Hero from './components/Hero';
+import PainPoints from './components/PainPoints';
 import Features from './components/Features';
 import TechHighlights from './components/TechHighlights';
 import MuscleMap from './components/MuscleMap';
@@ -58,6 +59,7 @@ function HomePage() {
         hoveredPillTextColor="#0a0a14"
       />
       <Hero />
+      <PainPoints />
       <Features />
       <TechHighlights />
       <MuscleMap />

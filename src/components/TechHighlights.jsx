@@ -1,4 +1,6 @@
 import MagicRings from './MagicRings';
+import ScrollFloat from './ScrollFloat/ScrollFloat';
+import useResponsiveScrollFloat from '../hooks/useResponsiveScrollFloat';
 import './TechHighlights.css';
 
 const highlights = [
@@ -52,6 +54,8 @@ const highlights = [
 ];
 
 export default function TechHighlights() {
+  const scrollCfg = useResponsiveScrollFloat();
+
   return (
     <section className="tech" id="tech">
       <MagicRings
@@ -80,9 +84,18 @@ export default function TechHighlights() {
       <div className="section-container">
         <div className="tech__header">
           <span className="section-label">Tech Stack</span>
-          <h2 className="section-title">
-            技术<span className="gradient-text">亮点</span>
-          </h2>
+          <ScrollFloat
+            segments={[
+              { text: '技术' },
+              { text: '亮点', gradient: true }
+            ]}
+            animationDuration={scrollCfg.animationDuration}
+            ease={scrollCfg.ease}
+            scrollStart={scrollCfg.scrollStart}
+            scrollEnd={scrollCfg.scrollEnd}
+            stagger={scrollCfg.stagger}
+            containerClassName="section-title-scroll"
+          />
           <p className="section-subtitle">
             每一项技术选择都经过深思熟虑，兼顾性能、合规与可扩展性
           </p>

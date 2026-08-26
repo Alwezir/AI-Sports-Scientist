@@ -1,3 +1,5 @@
+import ScrollFloat from './ScrollFloat/ScrollFloat';
+import useResponsiveScrollFloat from '../hooks/useResponsiveScrollFloat';
 import './PainPoints.css';
 
 const painPoints = [
@@ -14,9 +16,10 @@ const painPoints = [
         </defs>
       </svg>
     ),
-    title: '动作无人纠正',
-    desc: '大众健身"瞎练"，动作错误导致效果差、损伤高发。真人教练贵且难普及，普通人缺乏科学的动作反馈机制。',
-    tag: '痛点 01',
+    tag: '问题 01',
+    title: '体测深蹲扣分，却不知道扣在哪',
+    desc: '动作错误靠感觉，自己几乎看不出来；真人教练贵且难普及。动知上传视频即骨架叠加，膝内扣、蹲太浅逐帧识别，告诉你先改哪里。',
+    demo: '现场上传一段视频 → 骨架叠加 + 错误识别 + 评分',
     color: '#ff4757',
   },
   {
@@ -32,9 +35,10 @@ const painPoints = [
         </defs>
       </svg>
     ),
-    title: 'AI 不懂身体',
-    desc: '市面 AI 陪伴只"听说"不"看动"，不懂用户身体状态。疲劳、习惯、情绪——它一无所知，无法提供个性化建议。',
-    tag: '痛点 02',
+    tag: '问题 02',
+    title: '市面 AI 只「聊天」，记不住你的身体',
+    desc: '通用陪伴没有身体记忆，建议千人一面。动知生成运动画像，记录错误与趋势，教练回答引用你的历史数据，越用越懂你。',
+    demo: '问「我上周表现如何」→ 回答引用画像数据',
     color: '#ffa502',
   },
   {
@@ -50,24 +54,37 @@ const painPoints = [
         </defs>
       </svg>
     ),
-    title: '科学知识门槛高',
-    desc: '运动科学知识专业门槛高，解剖、生物力学知识普通人想懂却没人讲得清楚，信息碎片化严重。',
-    tag: '痛点 03',
+    tag: '问题 03',
+    title: '想懂「为什么伤」，却没人讲得清楚',
+    desc: '解剖术语门槛高，网上信息碎片化。动知把科普做成大白话卡片和可交互肌肉图谱，并主动亮明 AI 边界：不诊断，旧伤引导线下咨询。',
+    demo: '点开肌肉图谱 / 膝内扣卡片 → 大白话科普 + 合规引导',
     color: '#70a1ff',
   },
 ];
 
 export default function PainPoints() {
+  const scrollCfg = useResponsiveScrollFloat();
+
   return (
     <section className="pain-points" id="pain-points">
       <div className="section-container">
         <div className="pain-points__header">
           <span className="section-label">Why DongZhi</span>
-          <h2 className="section-title">
-            为什么做<span className="gradient-text">这件事</span>
-          </h2>
+          <ScrollFloat
+            segments={[
+              { text: '三个真实问题，三个' },
+              { text: '可演示', gradient: true },
+              { text: '的回答' }
+            ]}
+            animationDuration={scrollCfg.animationDuration}
+            ease={scrollCfg.ease}
+            scrollStart={scrollCfg.scrollStart}
+            scrollEnd={scrollCfg.scrollEnd}
+            stagger={scrollCfg.stagger}
+            containerClassName="section-title-scroll"
+          />
           <p className="section-subtitle">
-            健身行业存在三大核心痛点，动知用 AI 技术逐一击破
+            每个问题，作品里都有对应的能力，现场可演示、可体验。
           </p>
         </div>
 
@@ -84,6 +101,12 @@ export default function PainPoints() {
               <div className="pain-points__card-icon">{pp.icon}</div>
               <h3 className="pain-points__card-title">{pp.title}</h3>
               <p className="pain-points__card-desc">{pp.desc}</p>
+              <div className="pain-points__card-demo">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="pain-points__card-demo-icon">
+                  <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span>{pp.demo}</span>
+              </div>
               <div
                 className="pain-points__card-line"
                 style={{ background: `linear-gradient(90deg, ${pp.color}, transparent)` }}

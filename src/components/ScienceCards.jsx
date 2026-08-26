@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import galaxyData from '../data/healthGalaxy.json';
+import ScrollFloat from './ScrollFloat/ScrollFloat';
+import useResponsiveScrollFloat from '../hooks/useResponsiveScrollFloat';
 import './ScienceCards.css';
 
 const HEALTH_CATEGORIES = galaxyData.stars.map((star) => ({
@@ -244,6 +246,7 @@ function Galaxy3D({ activeCategory, onSelectTerm, onSelectCategory }) {
 export default function ScienceCards() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [selected, setSelected] = useState(HEALTH_TERMS[0]);
+  const scrollCfg = useResponsiveScrollFloat();
   const active = categoryMap[selected.category];
   const filteredTerms = useMemo(() => HEALTH_TERMS.filter((term) => activeCategory === 'all' || term.category === activeCategory), [activeCategory]);
   const selectCategory = (id) => { setActiveCategory(id); if (id !== 'all') setSelected(HEALTH_TERMS.find((term) => term.category === id) || selected); };
@@ -254,7 +257,18 @@ export default function ScienceCards() {
         <div className="science-cards__header">
           <div className="science-cards__header-copy">
             <span className="section-label">Knowledge Orbit</span>
-            <h2 className="section-title">人体健康<span className="gradient-text">星系</span></h2>
+            <ScrollFloat
+              segments={[
+                { text: '人体健康' },
+                { text: '星系', gradient: true }
+              ]}
+              animationDuration={scrollCfg.animationDuration}
+              ease={scrollCfg.ease}
+              scrollStart={scrollCfg.scrollStart}
+              scrollEnd={scrollCfg.scrollEnd}
+              stagger={scrollCfg.stagger}
+              containerClassName="section-title-scroll"
+            />
             <p className="section-subtitle">以坐标、连接和影响力，阅读身体系统如何协同工作。</p>
           </div>
           <div className="science-cards__metrics" aria-label="星系规模">
