@@ -5,6 +5,28 @@
   z-index: 9999;
 }
 
+/* PillNav 主题色板：默认夜，白天模式覆盖 */
+/* hover-text 必须与 pill-base（悬停圆形底）反色对比 */
+:root {
+  --pill-base: #0a0a14;
+  --pill-bg: #1a1a2e;
+  --pill-text: #0a0a14;
+  --pill-hover-text: #f0f0f8;
+  --pill-label: rgba(255, 255, 255, 0.8);
+  --pill-border: rgba(255, 255, 255, 0.08);
+  --pill-shadow: rgba(0, 0, 0, 0.3);
+}
+
+:root[data-theme="light"] {
+  --pill-base: #ffffff;
+  --pill-bg: #eef1f7;
+  --pill-text: #1a1d2e;
+  --pill-hover-text: #1a1d2e;
+  --pill-label: #5a6178;
+  --pill-border: rgba(20, 30, 60, 0.08);
+  --pill-shadow: rgba(20, 30, 60, 0.12);
+}
+
 @media (max-width: 768px) {
   .pill-nav-container {
     width: 100%;
@@ -37,23 +59,27 @@
   display: flex;
   align-items: center;
   height: var(--nav-h);
-  background: var(--base, #0a0a14);
+  background: var(--pill-base);
   border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--pill-border);
+  backdrop-filter: blur(12px) saturate(1.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
 }
 
 .pill-logo {
   width: var(--nav-h);
   height: var(--nav-h);
   border-radius: 50%;
-  background: var(--base, #0a0a14);
+  background: var(--pill-base);
   padding: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--pill-border);
   margin-right: 8px;
+  backdrop-filter: blur(12px) saturate(1.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
 }
 
 .pill-logo-icon {
@@ -90,8 +116,8 @@
   justify-content: center;
   height: 100%;
   padding: 0 var(--pill-pad-x);
-  background: var(--pill-bg, #1a1a2e);
-  color: var(--pill-text, #0a0a14);
+  background: var(--pill-bg);
+  color: var(--pill-text);
   text-decoration: none;
   border-radius: 9999px;
   box-sizing: border-box;
@@ -103,7 +129,7 @@
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--pill-border);
 }
 
 .pill .hover-circle {
@@ -111,7 +137,7 @@
   left: 50%;
   bottom: 0;
   border-radius: 50%;
-  background: var(--base, #0a0a14);
+  background: var(--pill-base);
   z-index: 1;
   display: block;
   pointer-events: none;
@@ -131,14 +157,14 @@
   display: inline-block;
   line-height: 1;
   will-change: transform;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--pill-label);
 }
 
 .pill .pill-label-hover {
   position: absolute;
   left: 0;
   top: 0;
-  color: var(--hover-text, #0a0a14);
+  color: var(--pill-hover-text);
   z-index: 3;
   display: inline-block;
   will-change: transform, opacity;
@@ -152,7 +178,7 @@
   transform: translateX(-50%);
   width: 12px;
   height: 12px;
-  background: var(--base, #0a0a14);
+  background: var(--pill-base);
   border-radius: 50px;
   z-index: 4;
 }
@@ -179,8 +205,8 @@
   width: var(--nav-h);
   height: var(--nav-h);
   border-radius: 50%;
-  background: var(--base, #0a0a14);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--pill-base);
+  border: 1px solid var(--pill-border);
   display: none;
   flex-direction: column;
   align-items: center;
@@ -189,6 +215,8 @@
   cursor: pointer;
   padding: 0;
   position: relative;
+  backdrop-filter: blur(12px) saturate(1.2);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
 }
 
 @media (max-width: 768px) {
@@ -200,7 +228,7 @@
 .hamburger-line {
   width: 16px;
   height: 2px;
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--pill-label);
   border-radius: 1px;
   transition: all 0.01s ease;
   transform-origin: center;
@@ -211,14 +239,16 @@
   top: 3em;
   left: 1rem;
   right: 1rem;
-  background: var(--base, #0a0a14);
+  background: var(--pill-base);
   border-radius: 27px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 32px var(--pill-shadow);
   z-index: 998;
   opacity: 0;
   transform-origin: top center;
   visibility: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--pill-border);
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
 }
 
 .mobile-menu-list {
@@ -233,18 +263,18 @@
 .mobile-menu-popover .mobile-menu-link {
   display: block;
   padding: 12px 16px;
-  color: rgba(255, 255, 255, 0.8);
-  background-color: var(--pill-bg, #1a1a2e);
+  color: var(--pill-label);
+  background-color: var(--pill-bg);
   text-decoration: none;
   font-size: 14px;
   font-weight: 500;
   border-radius: 50px;
   transition: all 0.2s ease;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--pill-border);
 }
 
 .mobile-menu-popover .mobile-menu-link:hover {
   cursor: pointer;
-  background-color: var(--base);
-  color: var(--hover-text, #0a0a14);
+  background-color: var(--pill-base);
+  color: var(--pill-hover-text);
 }

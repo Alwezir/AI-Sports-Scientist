@@ -11,6 +11,18 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
   </head>
   <body>
+    <script>
+      // 防止主题切换闪烁：在 React 渲染前根据存储或系统偏好设置 data-theme
+      (function () {
+        try {
+          var saved = localStorage.getItem('dongzhi_theme');
+          var theme = saved || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      })();
+    </script>
     <div id="app"></div>
     <!-- 甲交付的算法模块（UMD 格式，挂载到 window） -->
     <script src="./vendor/angle-calculator.js"></script>

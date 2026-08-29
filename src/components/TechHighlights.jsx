@@ -70,7 +70,7 @@ export default function TechHighlights() {
         scaleRate={0.1}
         opacity={0.6}
         blur={0}
-        noiseAmount={0.1}
+        noiseAmount={0}
         rotation={0}
         ringGap={1.5}
         fadeIn={0.7}

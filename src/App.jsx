@@ -8,6 +8,7 @@ import TechHighlights from './components/TechHighlights';
 import MuscleMap from './components/MuscleMap';
 import ScienceCards from './components/ScienceCards';
 import Footer from './components/Footer';
+import ThemeToggle from './components/ThemeToggle/ThemeToggle';
 import EvaluationPage from './pages/EvaluationPage';
 import ProfilePage from './pages/ProfilePage';
 import ChatPage from './pages/ChatPage';
@@ -54,9 +55,6 @@ function HomePage() {
       <PillNav
         items={navItems}
         activeHref="#features"
-        baseColor="#0a0a14"
-        pillColor="#1a1a2e"
-        hoveredPillTextColor="#0a0a14"
       />
       <Hero />
       <PainPoints />
@@ -80,6 +78,7 @@ export default function App() {
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/muscle-map" element={<MuscleMapPage />} />
       </Routes>
+      <ThemeToggle />
     </BrowserRouter>
   );
 }

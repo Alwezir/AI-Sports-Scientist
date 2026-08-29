@@ -126,12 +126,12 @@ export default function Features() {
           <SoftAurora
             speed={0.5}
             scale={2.0}
-            brightness={1.4}
+            brightness={2.2}
             color1="#00d4ff"
             color2="#7c3aed"
-            noiseFrequency={2.2}
-            noiseAmplitude={1.2}
-            bandHeight={0.45}
+            noiseFrequency={0}
+            noiseAmplitude={0}
+            bandHeight={0.78}
             bandSpread={1.5}
             octaveDecay={0.35}
             layerOffset={0.3}

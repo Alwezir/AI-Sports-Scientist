@@ -8,9 +8,9 @@ const PillNav = ({
   activeHref,
   className = '',
   ease = 'power3.easeOut',
-  baseColor = '#0a0a14',
-  pillColor = '#1a1a2e',
-  hoveredPillTextColor = '#0a0a14',
+  baseColor,
+  pillColor,
+  hoveredPillTextColor,
   pillTextColor,
   onMobileMenuClick,
   initialLoadAnimation = true
@@ -234,12 +234,12 @@ const PillNav = ({
     setIsMobileMenuOpen(false);
   };
 
-  const cssVars = {
-    ['--base']: baseColor,
-    ['--pill-bg']: pillColor,
-    ['--hover-text']: hoveredPillTextColor,
-    ['--pill-text']: resolvedPillTextColor
-  };
+  // 仅在显式传入颜色时才设置 inline 变量，否则交由 CSS 主题变量接管
+  const cssVars = {};
+  if (baseColor) cssVars['--pill-base'] = baseColor;
+  if (pillColor) cssVars['--pill-bg'] = pillColor;
+  if (hoveredPillTextColor) cssVars['--pill-hover-text'] = hoveredPillTextColor;
+  if (resolvedPillTextColor) cssVars['--pill-text'] = resolvedPillTextColor;
 
   return (
     <div className="pill-nav-container">
