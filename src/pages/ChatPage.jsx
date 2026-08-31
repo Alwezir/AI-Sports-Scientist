@@ -8,6 +8,7 @@ import {
 } from '../utils/userProfile';
 import { getProfileSummary, getCoachConfig } from '../utils/profileApi';
 import { respond as coachRespond, resetSessionProfile } from '../utils/coach/coachEngine.js';
+import { sentinelExtractFromTurn } from '../utils/autoProfileExtractor.js';
 import PixelBlast from '../components/PixelBlast';
 import LineSidebar from '../components/LineSidebar/LineSidebar';
 import useFinePointer from '../hooks/useFinePointer';
@@ -54,6 +55,7 @@ export default function ChatPage() {
   const [selectedIntent, setSelectedIntent] = useState(null);
   const [traitNotice, setTraitNotice] = useState(null);
   const [profileNotice, setProfileNotice] = useState(false);
+  const [profileExtractNotice, setProfileExtractNotice] = useState(null); // { text }
   const [clearNotice, setClearNotice] = useState(false);
   const [apiNotice, setApiNotice] = useState(null);
   const isFinePointer = useFinePointer();
@@ -141,6 +143,13 @@ export default function ChatPage() {
     return () => clearTimeout(t);
   }, [clearNotice]);
 
+  // 自动画像抽取 toast 3.5s 自动消失
+  useEffect(() => {
+    if (!profileExtractNotice) return;
+    const t = setTimeout(() => setProfileExtractNotice(null), 3500);
+    return () => clearTimeout(t);
+  }, [profileExtractNotice]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -197,6 +206,39 @@ export default function ChatPage() {
       const traitResult = analyzeAndSaveTraitsFromTurn(uid, messageText, reply);
       if (traitResult.added > 0) {
         setTraitNotice(traitResult);
+      }
+
+      // ---------- 自动用户画像抽取（姓名/爱好/风格/目标/心情起伏/伤病禁忌...） ----------
+      try {
+        // 轮次 = 当前所有对话里的用户发言计数（+1 因为刚才那条 userMsg 已 push 进 messages）
+        const userTurnCount = activeConversation.messages.filter((m) => m.role === 'user').length;
+        // 把最新一轮（用户+助手）也并入近 12 条历史
+        const hist = [...activeConversation.messages, { role: 'assistant', content: reply }]
+          .map(({ role, content }) => ({ role, content }));
+        const sentinelResult = sentinelExtractFromTurn({
+          userId: uid,
+          latestUserText: messageText,
+          turnNumber: userTurnCount,
+          history: hist,
+        });
+        if (sentinelResult.shouldToast && sentinelResult.changed) {
+          const parts = sentinelResult.changes
+            .map((c) => {
+              if (c.field === 'emotion') return c.value;
+              if (c.value !== undefined) return `${c.field}:${c.value}`;
+              if (c.old !== undefined || c.new !== undefined) {
+                return `${c.field}${c.old ? '(' + c.old + '→' + c.new + ')' : ''}`;
+              }
+              return c.field;
+            })
+            .filter(Boolean)
+            .slice(0, 4);
+          const text = `🧠 画像已更新：${parts.join(' / ')}${sentinelResult.changes.length > parts.length ? ' 等' + sentinelResult.changes.length + '项' : ''}`;
+          setProfileExtractNotice({ text });
+        }
+      } catch (e) {
+        // 画像抽取失败不影响正常对话
+        console.warn('[ChatPage] sentinel extract error:', e);
       }
 
       addMessage(conversationId, {
@@ -304,6 +346,18 @@ export default function ChatPage() {
             <span>
               已记住 {traitNotice.added} 个新特点（共 {traitNotice.total} 条），可在「运动画像 → 个人设置」中管理
             </span>
+          </div>
+        )}
+
+        {/* 自动画像抽取 toast */}
+        {profileExtractNotice && (
+          <div className="chat-page__extract-toast" role="status" aria-live="polite">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" stroke="#a78bfa" strokeWidth="1.8" />
+              <circle cx="12" cy="12" r="2.5" fill="#a78bfa" opacity="0.8" />
+              <path d="M4 12h2M18 12h2M12 4v2M12 18v2" stroke="#a78bfa" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+            <span>{profileExtractNotice.text}</span>
           </div>
         )}
 

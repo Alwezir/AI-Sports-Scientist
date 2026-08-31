@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import PageLayout from '../components/PageLayout';
 import {
   getOrCreateUserId,
@@ -25,6 +25,11 @@ import {
   normalizeRemoteProfile,
 } from '../utils/profileApi';
 import { getInitialProfileApiStatus } from '../utils/profileStatus';
+import {
+  loadAutoProfile,
+  resetAutoProfile,
+  updateAutoProfileField,
+} from '../utils/autoProfileExtractor.js';
 import './ProfilePage.css';
 
 // 手动画像 UI 兜底默认值（真实存取都走 userProfile 门面，已自动从旧 dongzhi_profile 迁移）
@@ -310,7 +315,24 @@ export default function ProfilePage() {
   const [addCategory, setAddCategory] = useState('injury');
   const [addValue, setAddValue] = useState('');
   const [profileApiStatus, setProfileApiStatus] = useState(null);
+  const [autoProfile, setAutoProfile] = useState(() => {
+    try { return loadAutoProfile(getPageUserId_()); } catch { return null; }
+  });
+  // 手动编辑字段的草稿：{ [field]: string }
+  const [autoDraft, setAutoDraft] = useState({});
+  // 用户画像 tab：数组字段（爱好/偏好/伤病...）手动新增的草稿
+  const [autoListDraft, setAutoListDraft] = useState({});
   const traitCats = getTraitCategories();
+
+  const reloadAutoProfile = useCallback(() => {
+    try { setAutoProfile(loadAutoProfile(getPageUserId_())); }
+    catch { setAutoProfile(null); }
+  }, []);
+
+  // 每次切换到用户画像 tab 就刷新本地画像数据
+  useEffect(() => {
+    if (activeTab === 'chat-profile') reloadAutoProfile();
+  }, [activeTab, reloadAutoProfile]);
 
   // 手动 profile 变更后：统一写入门面层（不再直接写 dongzhi_profile localStorage）
   useEffect(() => {
@@ -444,6 +466,7 @@ export default function ProfilePage() {
   const tabs = [
     { id: 'status', label: '状态记录' },
     { id: 'ai-profile', label: 'AI 画像' },
+    { id: 'chat-profile', label: '用户画像' },
     { id: 'goals', label: '目标管理' },
     { id: 'settings', label: '个人设置' },
   ];
@@ -859,6 +882,219 @@ export default function ProfilePage() {
                   })}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Chat Auto Profile Tab（用户画像） */}
+        {activeTab === 'chat-profile' && (
+          <div className="profile-page__tab-content">
+            <div className="profile-page__section">
+              <div className="chat-profile__header">
+                <div>
+                  <h3 className="profile-page__section-title">🧠 对话自动画像</h3>
+                  <p className="profile-page__section-desc">
+                    来自你与 AI 教练的日常对话，自动记录你的身份、兴趣、目标、说话风格、心情起伏。
+                    {autoProfile?.updatedAt && (
+                      <span>　最近更新：{new Date(autoProfile.updatedAt).toLocaleString('zh-CN')}　（累计抽取 {autoProfile?.extractionCount ?? 0} 次）</span>
+                    )}
+                  </p>
+                </div>
+                <div className="chat-profile__actions">
+                  <button
+                    className="chat-profile__btn chat-profile__btn--ghost"
+                    onClick={() => {
+                      if (!confirm('确认清空自动画像吗？会删除姓名、爱好、目标、情绪日志等自动记住的数据。')) return;
+                      resetAutoProfile(getPageUserId_());
+                      reloadAutoProfile();
+                      setAutoDraft({});
+                    }}
+                  >清空自动画像</button>
+                  <button className="chat-profile__btn chat-profile__btn--primary" onClick={reloadAutoProfile}>
+                    刷新
+                  </button>
+                </div>
+              </div>
+
+              {/* 标量字段卡片 */}
+              {(() => {
+                const scalarFields = [
+                  { key: 'name', label: '真实姓名', placeholder: '例如：张三（对话中说"我叫…"可自动识别）' },
+                  { key: 'nickname', label: '称呼/昵称', placeholder: '例如：小张（对话中说"叫我…"可自动识别）' },
+                  { key: 'occupation', label: '职业 / 身份', placeholder: '例如：学生 / 健身教练 / 程序员' },
+                  { key: 'speechStyle', label: '说话风格偏好', placeholder: '通俗 / 简洁 / 详细 / 案例驱动 / 理论深入' },
+                  { key: 'goals', label: '健身目标', placeholder: '例如：减脂 / 增肌 / 塑形 / 备赛' },
+                  { key: 'schedule', label: '日常作息 / 训练时间', placeholder: '例如：下班后才有空 / 一般晚上 8 点' },
+                ];
+                const hasAnyScalar = scalarFields.some((f) => autoProfile?.[f.key]);
+                return (
+                  <div className={`chat-profile__card-grid ${hasAnyScalar ? '' : 'chat-profile__card-grid--pending'}`}>
+                    {scalarFields.map(({ key, label, placeholder }) => {
+                      const value = autoProfile?.[key] || '';
+                      const draft = autoDraft[key];
+                      const isEditing = draft !== undefined;
+                      return (
+                        <div key={key} className="chat-profile__card">
+                          <div className="chat-profile__card-label">{label}</div>
+                          {isEditing ? (
+                            <div className="chat-profile__card-edit">
+                              <input
+                                value={draft}
+                                placeholder={placeholder}
+                                onChange={(e) => setAutoDraft({ ...autoDraft, [key]: e.target.value })}
+                              />
+                              <div className="chat-profile__card-actions">
+                                <button onClick={() => {
+                                  if (!String(draft || '').trim()) {
+                                    setAutoDraft((d) => { const n = { ...d }; delete n[key]; return n; });
+                                    return;
+                                  }
+                                  updateAutoProfileField(getPageUserId_(), key, draft);
+                                  setAutoDraft((d) => { const n = { ...d }; delete n[key]; return n; });
+                                  reloadAutoProfile();
+                                }} className="chat-profile__save-btn">保存</button>
+                                <button onClick={() => setAutoDraft((d) => { const n = { ...d }; delete n[key]; return n; })} className="chat-profile__cancel-btn">取消</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="chat-profile__card-row">
+                              <div className={`chat-profile__card-value ${value ? '' : 'is-empty'}`}>
+                                {value || '（暂未记录，可手动补录，或在对话中自然告诉教练）'}
+                              </div>
+                              <button className="chat-profile__edit-btn" onClick={() => setAutoDraft({ ...autoDraft, [key]: value || '' })}>
+                                编辑
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+
+              {/* 数组字段：爱好/训练偏好/伤病/备注/关键词 */}
+              {(() => {
+                const arrayFields = [
+                  { key: 'hobbies', label: '兴趣爱好', emptyTip: '对话中提到的运动会被自动识别（跑步/篮球/游泳/瑜伽…）' },
+                  { key: 'trainingPreferences', label: '训练偏好', emptyTip: '晨练/夜练/健身房/居家/自重/器械/上肢/下肢/核心…' },
+                  { key: 'healthConstraints', label: '健康禁忌 / 伤病', emptyTip: '膝盖疼/腰突/哮喘/高血压/肩伤/生理期…请如实填写，教练会据此避开危险动作' },
+                  { key: 'notes', label: '其他备注', emptyTip: '零散记住的事实' },
+                  { key: 'keywords', label: '关注关键词', emptyTip: '画像服务自动归纳的高关注词' },
+                ];
+                return arrayFields.map(({ key, label, emptyTip }) => {
+                  const arr = Array.isArray(autoProfile?.[key]) ? autoProfile[key] : [];
+                  return (
+                    <div key={key} className="chat-profile__list-section">
+                      <div className="chat-profile__list-head">
+                        <h4 className="chat-profile__list-title">{label}{arr.length > 0 && <span className="chat-profile__count">×{arr.length}</span>}</h4>
+                        <div className="chat-profile__list-add">
+                          <input
+                            type="text"
+                            placeholder={`手动新增一项${label}（回车或点添加）`}
+                            value={autoListDraft[key] || ''}
+                            onChange={(e) => setAutoListDraft({ ...autoListDraft, [key]: e.target.value })}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                const v = (autoListDraft[key] || '').trim();
+                                if (v) { updateAutoProfileField(getPageUserId_(), key, v); reloadAutoProfile(); setAutoListDraft({ ...autoListDraft, [key]: '' }); }
+                              }
+                            }}
+                          />
+                          <button onClick={() => {
+                            const v = (autoListDraft[key] || '').trim();
+                            if (v) { updateAutoProfileField(getPageUserId_(), key, v); reloadAutoProfile(); setAutoListDraft({ ...autoListDraft, [key]: '' }); }
+                          }} className="chat-profile__mini-add">添加</button>
+                        </div>
+                      </div>
+                      {arr.length > 0 ? (
+                        <div className="chat-profile__tag-list">
+                          {arr.map((item, i) => (
+                            <span key={`${item}-${i}`} className="chat-profile__tag">
+                              <span>{item}</span>
+                              <button
+                                className="chat-profile__tag-remove"
+                                aria-label={`删除${item}`}
+                                onClick={() => {
+                                  // 直接调用 patch 移除该项（数组字段删除）——从存储中 reload 即可
+                                  const uid = getPageUserId_();
+                                  try {
+                                    const STORAGE_KEY = 'dongzhi_user_data';
+                                    const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+                                    const doc = all[uid];
+                                    if (!doc?.auto_profile) return;
+                                    doc.auto_profile[key] = doc.auto_profile[key].filter((x) => x !== item);
+                                    doc.auto_profile.updatedAt = new Date().toISOString();
+                                    doc.last_updated = doc.auto_profile.updatedAt;
+                                    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+                                  } catch { /* ignore */ }
+                                  reloadAutoProfile();
+                                }}
+                              >×</button>
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="chat-profile__empty">{emptyTip}</p>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
+
+              {/* 情绪日志 */}
+              <div className="chat-profile__list-section">
+                <div className="chat-profile__list-head">
+                  <h4 className="chat-profile__list-title">📈 心情起伏（对话中自动记录，最近 {autoProfile?.emotionLog?.length ?? 0} 条，最多保留 60 条）</h4>
+                </div>
+                {autoProfile?.emotionLog?.length > 0 ? (
+                  <div className="chat-profile__emotions">
+                    {autoProfile.emotionLog.slice().reverse().slice(0, 20).map((e, i) => {
+                      const level = e.score <= -2 ? 'negative-2'
+                        : e.score === -1 ? 'negative-1'
+                        : e.score === 0 ? 'neutral'
+                        : e.score === 1 ? 'positive-1'
+                        : 'positive-2';
+                      return (
+                        <div key={i} className={`chat-profile__emotion-item chat-profile__emotion--${level}`}>
+                          <div className="chat-profile__emotion-mood">{e.mood || '（未知）'}</div>
+                          <div className="chat-profile__emotion-meta">
+                            {e.keyword ? <span className="chat-profile__emotion-kw">触发词：{e.keyword}</span> : null}
+                            {e.context ? <span className="chat-profile__emotion-ctx">"{e.context}"</span> : null}
+                          </div>
+                          <div className="chat-profile__emotion-time">{new Date(e.timestamp).toLocaleString('zh-CN')}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="chat-profile__empty">还没有心情起伏记录。在对话中说出"今天好累/压力好大/练得超爽"等，AI 会自动记录一条，用于后续教练给你个性化鼓励。</p>
+                )}
+              </div>
+
+              {/* knownFacts 事实列表 */}
+              <div className="chat-profile__list-section">
+                <div className="chat-profile__list-head">
+                  <h4 className="chat-profile__list-title">✅ 已确认的事实（{autoProfile?.knownFacts?.length ?? 0}）</h4>
+                </div>
+                {autoProfile?.knownFacts?.length > 0 ? (
+                  <ul className="chat-profile__facts">
+                    {autoProfile.knownFacts.slice().reverse().map((f, i) => (
+                      <li key={i}>
+                        <span className="chat-profile__fact-text">{f.fact}</span>
+                        <span className="chat-profile__fact-meta">
+                          <span className={`chat-profile__fact-source chat-profile__fact-source--${f.source === 'manual_edit' ? 'manual' : 'auto'}`}>
+                            {f.source === 'manual_edit' ? '手动补录' : '对话自动'}
+                          </span>
+                          <span>{new Date(f.updatedAt).toLocaleString('zh-CN')}</span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="chat-profile__empty">暂无事实，先去和教练聊几句你的情况吧。</p>
+                )}
+              </div>
             </div>
           </div>
         )}

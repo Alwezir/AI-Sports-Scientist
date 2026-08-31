@@ -807,6 +807,33 @@
   flex-shrink: 0;
 }
 
+.chat-page__extract-toast {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(167, 139, 250, 0.12);
+  border: 1px solid rgba(167, 139, 250, 0.45);
+  border-radius: 12px;
+  margin-bottom: 16px;
+  color: #f0e9ff;
+  font-size: 13px;
+  line-height: 1.5;
+  animation: chat-page__trait-pop 260ms ease-out;
+}
+
+.chat-page__extract-toast svg {
+  flex-shrink: 0;
+}
+
+:root[data-theme="light"] .chat-page__extract-toast {
+  background: rgba(124, 58, 237, 0.09);
+  color: #3a2a6b;
+}
+
 .chat-page__profile-toast,
 .chat-page__clear-toast,
 .chat-page__api-notice {

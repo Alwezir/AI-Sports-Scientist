@@ -1,12 +1,10 @@
-import { useEffect, useRef, useCallback, Suspense, lazy } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
+import MagicRings from './MagicRings';
+import SpecularButton from './SpecularButton/SpecularButton';
+import StrokeText from './StrokeText/StrokeText';
 import useFinePointer from '../hooks/useFinePointer';
 import useResponsiveStrokeText from '../hooks/useResponsiveStrokeText';
 import './Hero.css';
-
-// WebGL / GSAP 重组件：电脑端(pointer:fine)才按需加载 chunk，移动端根本不下载
-const MagicRings = lazy(() => import('./MagicRings'));
-const SpecularButton = lazy(() => import('./SpecularButton/SpecularButton'));
-const StrokeText = lazy(() => import('./StrokeText/StrokeText'));
 
 export default function Hero() {
   const canvasRef = useRef(null);
@@ -160,31 +158,29 @@ export default function Hero() {
         </defs>
       </svg>
       {isFinePointer && (
-        <Suspense fallback={null}>
-          <MagicRings
-            color="#00d4ff"
-            colorTwo="#7c3aed"
-            ringCount={8}
-            speed={0.6}
-            attenuation={8}
-            lineThickness={2.5}
-            baseRadius={0.25}
-            radiusStep={0.08}
-            scaleRate={0.08}
-            opacity={0.5}
-            blur={0}
-            noiseAmount={0.08}
-            rotation={0}
-            ringGap={1.5}
-            fadeIn={0.7}
-            fadeOut={0.5}
-            followMouse={false}
-            mouseInfluence={0.2}
-            hoverScale={1.2}
-            parallax={0.05}
-            clickBurst={false}
-          />
-        </Suspense>
+        <MagicRings
+          color="#00d4ff"
+          colorTwo="#7c3aed"
+          ringCount={8}
+          speed={0.6}
+          attenuation={8}
+          lineThickness={2.5}
+          baseRadius={0.25}
+          radiusStep={0.08}
+          scaleRate={0.08}
+          opacity={0.5}
+          blur={0}
+          noiseAmount={0.08}
+          rotation={0}
+          ringGap={1.5}
+          fadeIn={0.7}
+          fadeOut={0.5}
+          followMouse={false}
+          mouseInfluence={0.2}
+          hoverScale={1.2}
+          parallax={0.05}
+          clickBurst={false}
+        />
       )}
       <canvas ref={canvasRef} className="hero__canvas" />
       <div className="hero__overlay" />
@@ -196,70 +192,64 @@ export default function Hero() {
         <h1 className="hero__title hero__title--stroke">
           <div className="hero__title-line">
             {isFinePointer ? (
-              <Suspense fallback={<span className="hero__stroke-text hero__stroke-text--inline">动知 · </span>}>
-                <StrokeText
-                  text="动知 · "
-                  strokeColor="#00d4ff"
-                  fillColor="#f0f0f8"
-                  strokeWidth={strokeCfg.strokeWidth}
-                  drawDuration={strokeCfg.drawDuration}
-                  fillDelay={0.18}
-                  stagger={strokeCfg.stagger}
-                  ease="power2.out"
-                  trigger="mount"
-                  fillMode="wipe"
-                  fontSize={strokeCfg.fontSizeLine1}
-                  fontWeight={900}
-                  letterSpacing={strokeCfg.letterSpacingLine1}
-                  className="hero__stroke-text hero__stroke-text--inline"
-                />
-              </Suspense>
+              <StrokeText
+                text="动知 · "
+                strokeColor="#00d4ff"
+                fillColor="#f0f0f8"
+                strokeWidth={strokeCfg.strokeWidth}
+                drawDuration={strokeCfg.drawDuration}
+                fillDelay={0.18}
+                stagger={strokeCfg.stagger}
+                ease="power2.out"
+                trigger="mount"
+                fillMode="wipe"
+                fontSize={strokeCfg.fontSizeLine1}
+                fontWeight={900}
+                letterSpacing={strokeCfg.letterSpacingLine1}
+                className="hero__stroke-text hero__stroke-text--inline"
+              />
             ) : (
               <span className="hero__stroke-text hero__stroke-text--inline">动知 · </span>
             )}
             {isFinePointer ? (
-              <Suspense fallback={<span className="hero__stroke-text hero__stroke-text--inline hero__stroke-text--gradient"><span className="gradient-text">懂你身体的</span></span>}>
-                <StrokeText
-                  text="懂你身体的"
-                  strokeColor="#7c3aed"
-                  fillColor="url(#dongzhi-title-gradient)"
-                  strokeWidth={strokeCfg.strokeWidth}
-                  drawDuration={strokeCfg.drawDuration}
-                  fillDelay={0.18}
-                  stagger={strokeCfg.stagger}
-                  ease="power2.out"
-                  trigger="mount"
-                  fillMode="wipe"
-                  fontSize={strokeCfg.fontSizeLine1}
-                  fontWeight={900}
-                  letterSpacing={strokeCfg.letterSpacingLine1}
-                  className="hero__stroke-text hero__stroke-text--inline hero__stroke-text--gradient"
-                />
-              </Suspense>
+              <StrokeText
+                text="懂你身体的"
+                strokeColor="#7c3aed"
+                fillColor="url(#dongzhi-title-gradient)"
+                strokeWidth={strokeCfg.strokeWidth}
+                drawDuration={strokeCfg.drawDuration}
+                fillDelay={0.18}
+                stagger={strokeCfg.stagger}
+                ease="power2.out"
+                trigger="mount"
+                fillMode="wipe"
+                fontSize={strokeCfg.fontSizeLine1}
+                fontWeight={900}
+                letterSpacing={strokeCfg.letterSpacingLine1}
+                className="hero__stroke-text hero__stroke-text--inline hero__stroke-text--gradient"
+              />
             ) : (
               <span className="hero__stroke-text hero__stroke-text--inline hero__stroke-text--gradient"><span className="gradient-text">懂你身体的</span></span>
             )}
           </div>
           <div className="hero__title-line">
             {isFinePointer ? (
-              <Suspense fallback={<span className="hero__stroke-text">AI 运动教练</span>}>
-                <StrokeText
-                  text="AI 运动教练"
-                  strokeColor="#00d4ff"
-                  fillColor="#f0f0f8"
-                  strokeWidth={strokeCfg.strokeWidth}
-                  drawDuration={strokeCfg.drawDuration}
-                  fillDelay={0.18}
-                  stagger={strokeCfg.stagger}
-                  ease="power2.out"
-                  trigger="mount"
-                  fillMode="wipe"
-                  fontSize={strokeCfg.fontSizeLine2}
-                  fontWeight={900}
-                  letterSpacing={strokeCfg.letterSpacingLine2}
-                  className="hero__stroke-text"
-                />
-              </Suspense>
+              <StrokeText
+                text="AI 运动教练"
+                strokeColor="#00d4ff"
+                fillColor="#f0f0f8"
+                strokeWidth={strokeCfg.strokeWidth}
+                drawDuration={strokeCfg.drawDuration}
+                fillDelay={0.18}
+                stagger={strokeCfg.stagger}
+                ease="power2.out"
+                trigger="mount"
+                fillMode="wipe"
+                fontSize={strokeCfg.fontSizeLine2}
+                fontWeight={900}
+                letterSpacing={strokeCfg.letterSpacingLine2}
+                className="hero__stroke-text"
+              />
             ) : (
               <span className="hero__stroke-text">AI 运动教练</span>
             )}
@@ -271,33 +261,26 @@ export default function Hero() {
         </p>
         <div className="hero__actions">
           {isFinePointer ? (
-            <Suspense fallback={<a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="hero__btn hero__btn--primary">
+            <SpecularButton
+              size="lg"
+              radius={14}
+              lineColor="#00d4ff"
+              baseColor="#4a4a68"
+              tintOpacity={0.12}
+              textColor="#f5f5f5"
+              intensity={1.8}
+              shineSize={18}
+              shineFade={28}
+              thickness={2}
+              proximity={350}
+              onClick={(e) => scrollToSection(e, 'features')}
+              className="hero__btn hero__btn--primary"
+            >
               开始体验
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="hero__btn-arrow">
                 <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </a>}>
-              <SpecularButton
-                size="lg"
-                radius={14}
-                lineColor="#00d4ff"
-                baseColor="#4a4a68"
-                tintOpacity={0.12}
-                textColor="#f5f5f5"
-                intensity={1.8}
-                shineSize={18}
-                shineFade={28}
-                thickness={2}
-                proximity={350}
-                onClick={(e) => scrollToSection(e, 'features')}
-                className="hero__btn hero__btn--primary"
-              >
-                开始体验
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="hero__btn-arrow">
-                  <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </SpecularButton>
-            </Suspense>
+            </SpecularButton>
           ) : (
             <a href="#features" onClick={(e) => scrollToSection(e, 'features')} className="hero__btn hero__btn--primary">
               开始体验
@@ -307,27 +290,23 @@ export default function Hero() {
             </a>
           )}
           {isFinePointer ? (
-            <Suspense fallback={<a href="#pain-points" onClick={(e) => scrollToSection(e, 'pain-points')} className="hero__btn hero__btn--secondary">
+            <SpecularButton
+              size="lg"
+              radius={14}
+              lineColor="#a78bfa"
+              baseColor="#4a4a68"
+              tintOpacity={0.1}
+              textColor="#f5f5f5"
+              intensity={1.6}
+              shineSize={16}
+              shineFade={30}
+              thickness={1.8}
+              proximity={350}
+              onClick={(e) => scrollToSection(e, 'pain-points')}
+              className="hero__btn hero__btn--secondary"
+            >
               了解更多
-            </a>}>
-              <SpecularButton
-                size="lg"
-                radius={14}
-                lineColor="#a78bfa"
-                baseColor="#4a4a68"
-                tintOpacity={0.1}
-                textColor="#f5f5f5"
-                intensity={1.6}
-                shineSize={16}
-                shineFade={30}
-                thickness={1.8}
-                proximity={350}
-                onClick={(e) => scrollToSection(e, 'pain-points')}
-                className="hero__btn hero__btn--secondary"
-              >
-                了解更多
-              </SpecularButton>
-            </Suspense>
+            </SpecularButton>
           ) : (
             <a href="#pain-points" onClick={(e) => scrollToSection(e, 'pain-points')} className="hero__btn hero__btn--secondary">
               了解更多
