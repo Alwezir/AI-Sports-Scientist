@@ -1,4 +1,4 @@
-﻿import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import PageLayout from '../components/PageLayout';
 import './MuscleMapPage.css';
 
@@ -414,49 +414,119 @@ function getDetailConfig(groupId, view) {
   return groupConfig.front;
 }
 
+// 收集所有细节图 URL，用于空闲时预加载（仅取 front / back 的 imageSrc）
+const ALL_DETAIL_IMAGES = (() => {
+  const set = new Set();
+  Object.values(modelAnnotations).forEach((g) => {
+    if (g.front?.imageSrc) set.add(g.front.imageSrc);
+    if (g.back?.imageSrc) set.add(g.back.imageSrc);
+  });
+  return Array.from(set);
+})();
+
+// 页面空闲时预加载所有细节图，避免切换时空白
+function usePrefetchDetailImages() {
+  useEffect(() => {
+    let cancelled = false;
+    const doPrefetch = () => {
+      if (cancelled) return;
+      ALL_DETAIL_IMAGES.forEach((src, i) => {
+        // 错峰发起，避免并发阻塞主线程
+        setTimeout(() => {
+          if (cancelled) return;
+          const img = new Image();
+          img.decoding = 'async';
+          img.referrerPolicy = 'no-referrer';
+          img.src = src;
+        }, i * 220);
+      });
+    };
+    // 等 1.5s 进入 idle 再预加载
+    const t = setTimeout(() => {
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(doPrefetch, { timeout: 4000 });
+      } else {
+        doPrefetch();
+      }
+    }, 1500);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, []);
+}
+
 // 细节图：网页人体建模截图 + 图例式标注（蓝点 + 虚线 + 名称，描述见下方位置分布）
 function MuscleDetailIllustration({ group, view }) {
-  const config = getDetailConfig(group.id, view);
+  const config = useMemo(() => getDetailConfig(group.id, view), [group.id, view]);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [imgErrored, setImgErrored] = useState(false);
+
   if (!config) return null;
+
+  const cacheKey = `${config.imageSrc}|${view}`;
 
   return (
     <div className="mmp-detail__illustration mmp-detail__illustration--full">
-      <div className="mmp-detail__sn-figure">
+      <div className={`mmp-detail__sn-figure ${!imgLoaded ? 'mmp-detail__sn-figure--loading' : ''}`}>
+        {!imgLoaded && !imgErrored && (
+          <div
+            className="mmp-detail__sn-skeleton"
+            style={{ aspectRatio: `1920 / ${config.height}` }}
+            aria-hidden="true"
+          />
+        )}
+        {imgErrored && (
+          <div className="mmp-detail__sn-error" style={{ aspectRatio: `1920 / ${config.height}` }}>
+            图片加载失败，请刷新重试
+          </div>
+        )}
         <img
+          key={cacheKey}
           src={config.imageSrc}
           alt={`${group.name}人体建模细节图（网页图谱截图）`}
-          className="mmp-detail__sn-image"
+          className={`mmp-detail__sn-image ${imgLoaded ? 'mmp-detail__sn-image--loaded' : ''}`}
+          loading="eager"
+          decoding="async"
+          fetchPriority="high"
+          onLoad={() => setImgLoaded(true)}
+          onError={() => { setImgLoaded(true); setImgErrored(true); }}
+          style={{ display: imgErrored ? 'none' : 'block' }}
         />
-        <svg
-          className="mmp-detail__sn-overlay"
-          viewBox={`0 0 1920 ${config.height}`}
-          preserveAspectRatio="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {config.items.map((a) => (
-            <g key={a.id}>
-              <line
-                x1={a.dot.x}
-                y1={a.dot.y}
-                x2={a.labelEdge.x}
-                y2={a.labelEdge.y}
-                stroke={SN_MARK_COLOR}
-                strokeWidth="3"
-                strokeDasharray="10 7"
-              />
-              <circle cx={a.dot.x} cy={a.dot.y} r="11" fill={SN_MARK_COLOR} stroke="#fff" strokeWidth="3" />
-            </g>
-          ))}
-        </svg>
-        {config.items.map((a) => (
-          <div
-            key={a.id}
-            className={`mmp-detail__sn-label mmp-detail__sn-label--${a.side}`}
-            style={{ top: a.top }}
-          >
-            <span className="mmp-detail__sn-label-name" style={{ color: SN_NAME_DARK }}>{a.name}</span>
-          </div>
-        ))}
+        {imgLoaded && !imgErrored && (
+          <>
+            <svg
+              className="mmp-detail__sn-overlay"
+              viewBox={`0 0 1920 ${config.height}`}
+              preserveAspectRatio="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              {config.items.map((a) => (
+                <g key={a.id}>
+                  <line
+                    x1={a.dot.x}
+                    y1={a.dot.y}
+                    x2={a.labelEdge.x}
+                    y2={a.labelEdge.y}
+                    stroke={SN_MARK_COLOR}
+                    strokeWidth="3"
+                    strokeDasharray="10 7"
+                  />
+                  <circle cx={a.dot.x} cy={a.dot.y} r="11" fill={SN_MARK_COLOR} stroke="#fff" strokeWidth="3" />
+                </g>
+              ))}
+            </svg>
+            {config.items.map((a) => (
+              <div
+                key={a.id}
+                className={`mmp-detail__sn-label mmp-detail__sn-label--${a.side}`}
+                style={{ top: a.top }}
+              >
+                <span className="mmp-detail__sn-label-name" style={{ color: SN_NAME_DARK }}>{a.name}</span>
+              </div>
+            ))}
+          </>
+        )}
       </div>
     </div>
   );
@@ -467,6 +537,8 @@ export default function MuscleMapPage() {
   const [hoveredGroup, setHoveredGroup] = useState(null);
   const [currentView, setCurrentView] = useState('front');
   const detailRef = useRef(null);
+
+  usePrefetchDetailImages();
 
   const activeData = activeGroup ? muscleGroups.find((g) => g.id === activeGroup) : null;
   const currentViewData = views.find((v) => v.id === currentView);
@@ -480,6 +552,18 @@ export default function MuscleMapPage() {
     setCurrentView(viewId);
     setActiveGroup(null);
     setHoveredGroup(null);
+  };
+
+  const handleHotspotTap = (e, groupId) => {
+    // touchstart 直接响应，避开 300ms tap 延迟；onClick 兜底（键盘/指针）
+    if (e.type === 'touchstart') {
+      e.preventDefault();
+    }
+    handleGroupClick(groupId);
+    if (detailRef.current && activeGroup !== groupId) {
+      // 切到新肌群时滚动到详情
+      detailRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   return (
@@ -624,7 +708,11 @@ export default function MuscleMapPage() {
                     <g key={group.id} className="mmp-page__muscle-group"
                       onMouseEnter={() => setHoveredGroup(group.id)}
                       onMouseLeave={() => setHoveredGroup(null)}
-                      onClick={() => handleGroupClick(group.id)}
+                      onTouchStart={(e) => handleHotspotTap(e, group.id)}
+                      onClick={(e) => handleHotspotTap(e, group.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleHotspotTap(e, group.id); } }}
                       style={{ cursor: 'pointer' }}>
                       {paths.map((d, idx) => (
                         <path key={`${group.id}-${idx}`} d={d}

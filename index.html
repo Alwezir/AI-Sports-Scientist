@@ -4,11 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="动知 - 基于阿里千问大模型+人体动作分析的AI运动教练数字分身" />
+    <meta name="theme-color" content="#06060e" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f5f7fb" media="(prefers-color-scheme: light)" />
     <title>动知 · 懂你身体的AI运动教练</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' stroke='%2300d4ff' stroke-width='2' fill='none'/><circle cx='16' cy='10' r='2.5' fill='%2300d4ff'/><circle cx='10' cy='16' r='2' fill='%237c3aed'/><circle cx='22' cy='16' r='2' fill='%237c3aed'/><circle cx='12' cy='23' r='2' fill='%2300d4ff'/><circle cx='20' cy='23' r='2' fill='%2300d4ff'/></svg>" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700;900&display=swap" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
+    </noscript>
   </head>
   <body>
     <script>
@@ -24,13 +30,13 @@
       })();
     </script>
     <div id="app"></div>
-    <!-- 甲交付的算法模块（UMD 格式，挂载到 window） -->
-    <script src="./vendor/angle-calculator.js"></script>
-    <script src="./vendor/rep-counter.js"></script>
-    <script src="./vendor/skeleton-renderer.js"></script>
-    <script src="./vendor/body-muscles.js"></script>
-    <script src="./vendor/evaluation-schema.js"></script>
-    <script src="./vendor/pose-extractor.js"></script>
+    <!-- 甲交付的算法模块（UMD 格式，挂载到 window） → 仅评估页使用，首页不阻塞渲染，用 defer 延后并按序执行 -->
+    <script defer src="./vendor/angle-calculator.js"></script>
+    <script defer src="./vendor/rep-counter.js"></script>
+    <script defer src="./vendor/skeleton-renderer.js"></script>
+    <script defer src="./vendor/body-muscles.js"></script>
+    <script defer src="./vendor/evaluation-schema.js"></script>
+    <script defer src="./vendor/pose-extractor.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

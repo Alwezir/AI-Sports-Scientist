@@ -22,3 +22,50 @@
   position: relative;
   z-index: 1;
 }
+
+/* 路由懒加载骨架屏 */
+.app-skeleton {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  padding: 24px 16px;
+}
+
+.app-skeleton__nav {
+  height: 64px;
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.04) 0%,
+    rgba(0, 212, 255, 0.1) 50%,
+    rgba(255,255,255,0.04) 100%);
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.4s ease-in-out infinite;
+  border-radius: 999px;
+  max-width: 420px;
+  margin: 0 auto 32px;
+}
+
+.app-skeleton__content {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.app-skeleton__line {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.04) 0%,
+    rgba(0, 212, 255, 0.08) 50%,
+    rgba(255,255,255,0.04) 100%);
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.4s ease-in-out infinite;
+  border-radius: 10px;
+}
+
+.app-skeleton__line--lg { height: 88px; }
+.app-skeleton__line--md { height: 24px; }
+.app-skeleton__line--sm { height: 16px; width: 70%; }
+
+@keyframes sk-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

@@ -1,9 +1,12 @@
 import { Link } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
 import ScrollFloat from './ScrollFloat/ScrollFloat';
-import SoftAurora from './SoftAurora/SoftAurora';
 import useResponsiveScrollFloat from '../hooks/useResponsiveScrollFloat';
 import useFinePointer from '../hooks/useFinePointer';
 import './Features.css';
+
+// SoftAurora 含 ogl WebGL，仅电脑端按需加载，移动端不下载
+const SoftAurora = lazy(() => import('./SoftAurora/SoftAurora'));
 
 const features = [
   {
@@ -118,27 +121,28 @@ const features = [
 export default function Features() {
   const scrollCfg = useResponsiveScrollFloat();
   const isFinePointer = useFinePointer();
-
   return (
     <section className="features" id="features">
       {isFinePointer && (
         <div className="features__aurora">
-          <SoftAurora
-            speed={0.5}
-            scale={2.0}
-            brightness={2.2}
-            color1="#00d4ff"
-            color2="#7c3aed"
-            noiseFrequency={0}
-            noiseAmplitude={0}
-            bandHeight={0.78}
-            bandSpread={1.5}
-            octaveDecay={0.35}
-            layerOffset={0.3}
-            colorSpeed={1.2}
-            enableMouseInteraction={true}
-            mouseInfluence={0.3}
-          />
+          <Suspense fallback={null}>
+            <SoftAurora
+              speed={0.5}
+              scale={2.0}
+              brightness={2.2}
+              color1="#00d4ff"
+              color2="#7c3aed"
+              noiseFrequency={0}
+              noiseAmplitude={0}
+              bandHeight={0.78}
+              bandSpread={1.5}
+              octaveDecay={0.35}
+              layerOffset={0.3}
+              colorSpeed={1.2}
+              enableMouseInteraction={true}
+              mouseInfluence={0.3}
+            />
+          </Suspense>
         </div>
       )}
       <div className="features__aurora-overlay" />

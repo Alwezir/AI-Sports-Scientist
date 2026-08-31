@@ -1,9 +1,11 @@
-import { useState } from 'react';
-import SpecularButton from './SpecularButton/SpecularButton';
+import { useState, Suspense, lazy } from 'react';
 import ScrollFloat from './ScrollFloat/ScrollFloat';
 import useFinePointer from '../hooks/useFinePointer';
 import useResponsiveScrollFloat from '../hooks/useResponsiveScrollFloat';
 import './MuscleMap.css';
+
+// SpecularButton 含 WebGL，仅电脑端按需加载，移动端不下载
+const SpecularButton = lazy(() => import('./SpecularButton/SpecularButton'));
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
 const MUSCLE_MAP_URL = `${BASE}/muscle-map`; // 绝对（带子路径）地址，GitHub Pages 不会跳到站点根级 404
@@ -126,23 +128,27 @@ export default function MuscleMap() {
               />
             </div>
             {isFinePointer ? (
-              <SpecularButton
-                size="md"
-                radius={12}
-                lineColor="#00d4ff"
-                baseColor="#3a3a52"
-                tintOpacity={0.08}
-                textColor="#f5f5f5"
-                intensity={1.5}
-                shineSize={16}
-                shineFade={30}
-                thickness={1.5}
-                proximity={250}
-                onClick={() => window.open(MUSCLE_MAP_URL, '_self')}
-                className="muscle-map__full-link"
-              >
+              <Suspense fallback={<a href={MUSCLE_MAP_URL} className="muscle-map__full-link">
                 查看完整肌肉图谱 →
-              </SpecularButton>
+              </a>}>
+                <SpecularButton
+                  size="md"
+                  radius={12}
+                  lineColor="#00d4ff"
+                  baseColor="#3a3a52"
+                  tintOpacity={0.08}
+                  textColor="#f5f5f5"
+                  intensity={1.5}
+                  shineSize={16}
+                  shineFade={30}
+                  thickness={1.5}
+                  proximity={250}
+                  onClick={() => window.open(MUSCLE_MAP_URL, '_self')}
+                  className="muscle-map__full-link"
+                >
+                  查看完整肌肉图谱 →
+                </SpecularButton>
+              </Suspense>
             ) : (
               <a href={MUSCLE_MAP_URL} className="muscle-map__full-link">
                 查看完整肌肉图谱 →

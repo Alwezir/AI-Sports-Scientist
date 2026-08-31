@@ -1,7 +1,11 @@
-import MagicRings from './MagicRings';
+import { Suspense, lazy } from 'react';
 import ScrollFloat from './ScrollFloat/ScrollFloat';
+import useFinePointer from '../hooks/useFinePointer';
 import useResponsiveScrollFloat from '../hooks/useResponsiveScrollFloat';
 import './TechHighlights.css';
+
+// MagicRings 含 ogl WebGL，仅电脑端按需加载，移动端不下载
+const MagicRings = lazy(() => import('./MagicRings'));
 
 const highlights = [
   {
@@ -55,32 +59,37 @@ const highlights = [
 
 export default function TechHighlights() {
   const scrollCfg = useResponsiveScrollFloat();
+  const isFinePointer = useFinePointer();
 
   return (
     <section className="tech" id="tech">
-      <MagicRings
-        color="#00d4ff"
-        colorTwo="#7c3aed"
-        ringCount={6}
-        speed={0.8}
-        attenuation={10}
-        lineThickness={2}
-        baseRadius={0.35}
-        radiusStep={0.1}
-        scaleRate={0.1}
-        opacity={0.6}
-        blur={0}
-        noiseAmount={0}
-        rotation={0}
-        ringGap={1.5}
-        fadeIn={0.7}
-        fadeOut={0.5}
-        followMouse={false}
-        mouseInfluence={0.2}
-        hoverScale={1.2}
-        parallax={0.05}
-        clickBurst={false}
-      />
+      {isFinePointer && (
+        <Suspense fallback={null}>
+          <MagicRings
+            color="#00d4ff"
+            colorTwo="#7c3aed"
+            ringCount={6}
+            speed={0.8}
+            attenuation={10}
+            lineThickness={2}
+            baseRadius={0.35}
+            radiusStep={0.1}
+            scaleRate={0.1}
+            opacity={0.6}
+            blur={0}
+            noiseAmount={0}
+            rotation={0}
+            ringGap={1.5}
+            fadeIn={0.7}
+            fadeOut={0.5}
+            followMouse={false}
+            mouseInfluence={0.2}
+            hoverScale={1.2}
+            parallax={0.05}
+            clickBurst={false}
+          />
+        </Suspense>
+      )}
       <div className="section-container">
         <div className="tech__header">
           <span className="section-label">Tech Stack</span>

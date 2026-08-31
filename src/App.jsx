@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, Suspense, lazy } from 'react';
 import PillNav from './components/PillNav';
 import Hero from './components/Hero';
 import PainPoints from './components/PainPoints';
@@ -9,11 +9,27 @@ import MuscleMap from './components/MuscleMap';
 import ScienceCards from './components/ScienceCards';
 import Footer from './components/Footer';
 import ThemeToggle from './components/ThemeToggle/ThemeToggle';
-import EvaluationPage from './pages/EvaluationPage';
-import ProfilePage from './pages/ProfilePage';
-import ChatPage from './pages/ChatPage';
-import MuscleMapPage from './pages/MuscleMapPage';
 import './App.css';
+
+// 子页面独立 chunk，首屏不下发，移动端大幅减包
+const EvaluationPage = lazy(() => import('./pages/EvaluationPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
+const MuscleMapPage = lazy(() => import('./pages/MuscleMapPage'));
+
+function PageSkeleton() {
+  return (
+    <div className="app-skeleton" aria-hidden="true">
+      <div className="app-skeleton__nav" />
+      <div className="app-skeleton__content">
+        <div className="app-skeleton__line app-skeleton__line--lg" />
+        <div className="app-skeleton__line app-skeleton__line--md" />
+        <div className="app-skeleton__line app-skeleton__line--md" />
+        <div className="app-skeleton__line app-skeleton__line--sm" />
+      </div>
+    </div>
+  );
+}
 
 const navItems = [
   { label: '痛点', href: '#pain-points' },
@@ -73,10 +89,10 @@ export default function App() {
       <SpaRedirectRestore />
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/evaluation" element={<EvaluationPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/chat" element={<ChatPage />} />
-        <Route path="/muscle-map" element={<MuscleMapPage />} />
+        <Route path="/evaluation" element={<Suspense fallback={<PageSkeleton />}><EvaluationPage /></Suspense>} />
+        <Route path="/profile" element={<Suspense fallback={<PageSkeleton />}><ProfilePage /></Suspense>} />
+        <Route path="/chat" element={<Suspense fallback={<PageSkeleton />}><ChatPage /></Suspense>} />
+        <Route path="/muscle-map" element={<Suspense fallback={<PageSkeleton />}><MuscleMapPage /></Suspense>} />
       </Routes>
       <ThemeToggle />
     </BrowserRouter>

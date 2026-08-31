@@ -4,13 +4,13 @@ import useResponsiveScrollFloat from '../hooks/useResponsiveScrollFloat';
 import './Footer.css';
 
 const team = [
-  { role: '算法', name: '甲', desc: 'MediaPipe / 评估核心' },
-  { role: '前端+UI', name: '乙', desc: 'H5 四页 / 肌肉图谱 / 适配' },
-  { role: '平台+对话编排', name: '许婉莹', desc: '画像机制 / 意图路由' },
-  { role: '测试评估', name: 'F 康芊芊', desc: '测试用例 / 画像准确度' },
-  { role: '知识库内容', name: 'G 赵雅鑫', desc: '文献整理 / 知识库构建' },
-  { role: '文档视频', name: 'H 左皖云', desc: '技术方案 / 演示视频' },
-  { role: '文案', name: '产品组', desc: '教练人格 / 科普文案' },
+  { role: '算法', name: '潘阳', desc: 'MediaPipe / 评估核心' },
+  { role: '前端+UI', name: '韦恩泽', desc: 'H5 四页 / 肌肉图谱 / 适配 / 演示视频' },
+  { role: '平台+对话编排', name: '许婉莹', desc: '画像机制 / 意图路由 / 工作流' },
+  { role: '测试评估', name: '康芊芊', desc: '测试用例 / 画像准确度 / 文档' },
+  { role: '知识库内容', name: '赵雅鑫', desc: '文献整理 / 知识库构建 / 用户画像' },
+  { role: '文档视频', name: '左皖云', desc: '技术方案 / 演示视频 / PPT' },
+  { role: '文案', name: '孙冰疑', desc: '教练人格 / 科普文案' },
 ];
 
 const trustItems = [
@@ -167,10 +167,7 @@ export default function Footer() {
 
                 <div className="footer__contact">
                   <h4 className="footer__contact-title">联系方式</h4>
-                  <p className="footer__contact-text">如有合作意向或问题反馈</p>
-                  <a href="mailto:contact@dongzhi.ai" className="footer__contact-email">
-                    contact@dongzhi.ai
-                  </a>
+                  <p className="footer__contact-text">如有合作意向或反馈：QQ群号972410522</p>
                 </div>
               </div>
             </div>

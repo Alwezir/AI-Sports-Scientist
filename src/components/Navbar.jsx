@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import SpecularButton from './SpecularButton/SpecularButton';
 import useFinePointer from '../hooks/useFinePointer';
 import './Navbar.css';
+
+// SpecularButton 含 WebGL，仅电脑端按需加载，移动端不下载
+const SpecularButton = lazy(() => import('./SpecularButton/SpecularButton'));
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -96,23 +98,34 @@ export default function Navbar() {
         </div>
 
         {isFinePointer ? (
-          <SpecularButton
-            size="sm"
-            radius={10}
-            lineColor="#00d4ff"
-            baseColor="#3a3a52"
-            tintOpacity={0.08}
-            textColor="#f5f5f5"
-            intensity={1.5}
-            shineSize={16}
-            shineFade={30}
-            thickness={1.5}
-            proximity={250}
-            onClick={() => scrollToSection('features')}
+          <Suspense fallback={<a
+            href="#features"
+            onClick={(e) => {
+              e.preventDefault();
+              scrollToSection('features');
+            }}
             className="navbar__cta"
           >
             开始体验
-          </SpecularButton>
+          </a>}>
+            <SpecularButton
+              size="sm"
+              radius={10}
+              lineColor="#00d4ff"
+              baseColor="#3a3a52"
+              tintOpacity={0.08}
+              textColor="#f5f5f5"
+              intensity={1.5}
+              shineSize={16}
+              shineFade={30}
+              thickness={1.5}
+              proximity={250}
+              onClick={() => scrollToSection('features')}
+              className="navbar__cta"
+            >
+              开始体验
+            </SpecularButton>
+          </Suspense>
         ) : (
           <a
             href="#features"
