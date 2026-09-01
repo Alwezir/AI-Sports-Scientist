@@ -16,6 +16,7 @@ import {
   saveManualProfile,
   resetManualProfile,
   resetAllUserData,
+  aggregateStatusCards,
 } from '../utils/userProfile';
 import {
   addGoal,
@@ -31,6 +32,7 @@ import {
   loadAutoProfile,
   resetAutoProfile,
   updateAutoProfileField,
+  syncTrainingStatsToAutoProfile,
 } from '../utils/autoProfileExtractor.js';
 import './ProfilePage.css';
 
@@ -55,7 +57,7 @@ function getPageUserId_() {
 const SPORTS_OPTIONS = ['深蹲', '卧推', '硬拉', '跑步', '游泳', '瑜伽', '篮球', '骑行'];
 const MOOD_OPTIONS = [
   { value: 'great', label: '精力充沛', emoji: '⚡' },
-  { value: 'good', label: '状态不错', emoji: '' },
+  { value: 'good', label: '状态不错', emoji: '✨' },
   { value: 'neutral', label: '一般', emoji: '😐' },
   { value: 'tired', label: '有些疲劳', emoji: '😴' },
   { value: 'sore', label: '肌肉酸痛', emoji: '🤕' },
@@ -306,7 +308,7 @@ export default function ProfilePage() {
     }
   });
 
-  const [activeTab, setActiveTab] = useState('status');
+  const [activeTab, setActiveTab] = useState('ai-profile');
   const [newRecord, setNewRecord] = useState({ sport: '', duration: '', notes: '' });
   const [aiSummary, setAiSummary] = useState('');
   const [aiRecords, setAiRecords] = useState([]);
@@ -331,10 +333,39 @@ export default function ProfilePage() {
     catch { setAutoProfile(null); }
   }, []);
 
-  // 每次切换到用户画像 tab 就刷新本地画像数据
+  // 切到 AI 画像 tab 时：同步训练数值 → auto_profile.stats，再一起刷新所有数据源的 UI
+  const reloadAiProfileTab = useCallback(() => {
+    const uid = getPageUserId_();
+    const overview = getTrainingOverview(uid);
+    const recent = getRecentPerRepScores(uid, 30);
+    const errors = getRecurringErrors(uid, 1);
+    try { syncTrainingStatsToAutoProfile(uid, { overview, recent, errors }); } catch (_e) { /* ignore */ }
+    setTrainingOverview(overview);
+    setRecurringErrors(errors);
+    setRecentScores(recent);
+    setAiSummary(generateProfileSummary(uid, 'train'));
+    setAiRecords(getTrainingRecords(uid));
+    reloadAutoProfile();
+    let cancelled = false;
+    Promise.all([getFullProfile(uid), getProfileSummary(uid)])
+      .then(([payload, summary]) => {
+        if (cancelled) return;
+        const remote = normalizeRemoteProfile(payload);
+        setAiSummary(summary.summary || generateProfileSummary(uid, 'train'));
+        setAiRecords(remote.trainingRecords);
+        setProfileApiStatus('已连接画像服务，训练记录与摘要为最新数据');
+      })
+      .catch(() => {
+        if (!cancelled) setProfileApiStatus('画像服务暂时未连接，当前显示本机缓存数据');
+      });
+    return () => { cancelled = true; };
+  }, [reloadAutoProfile]);
+
   useEffect(() => {
-    if (activeTab === 'chat-profile') reloadAutoProfile();
-  }, [activeTab, reloadAutoProfile]);
+    if (activeTab !== 'ai-profile') return;
+    const cancelFn = reloadAiProfileTab();
+    return () => { if (typeof cancelFn === 'function') cancelFn(); };
+  }, [activeTab, reloadAiProfileTab]);
 
   // 手动 profile 变更后：统一写入门面层（不再直接写 dongzhi_profile localStorage）
   useEffect(() => {
@@ -367,35 +398,51 @@ export default function ProfilePage() {
       });
   }, []);
 
-  // AI 画像：读取算法训练数据生成的画像摘要（对接 generate_profile_summary）
-  useEffect(() => {
-    if (activeTab !== 'ai-profile') return;
-    const userId = getOrCreateUserId();
-    let cancelled = false;
-    setAiSummary(generateProfileSummary(userId, 'train'));
-    setAiRecords(getTrainingRecords(userId));
-    setTrainingOverview(getTrainingOverview(userId));
-    setRecurringErrors(getRecurringErrors(userId, 1)); // 至少出现 1 次即展示，便于查看
-    setRecentScores(getRecentPerRepScores(userId, 30));
-    Promise.all([getFullProfile(userId), getProfileSummary(userId)])
-      .then(([payload, summary]) => {
-        if (cancelled) return;
-        const remote = normalizeRemoteProfile(payload);
-        setAiSummary(summary.summary || generateProfileSummary(userId, 'train'));
-        setAiRecords(remote.trainingRecords);
-        setProfileApiStatus('已连接画像服务，训练记录与摘要为最新数据');
-      })
-      .catch(() => {
-        if (!cancelled) setProfileApiStatus('画像服务暂时未连接，当前显示本机缓存数据');
-      });
-    return () => { cancelled = true; };
-  }, [activeTab]);
+
 
   // 个人设置：读取对话记住的用户特点
   const refreshChatTraits = () => {
     const userId = getOrCreateUserId();
     setChatTraits(getUserChatTraits(userId));
   };
+
+  // 跨页面联动：动作评估完成 / AI 教练对话记住新信息 → 广播 user-profile:changed
+  // 画像页监听到后，立即重算 4 张状态卡 + 刷新训练数据/身份画像，用户不用手动刷新页面
+  useEffect(() => {
+    const handler = () => {
+      // 1) 手动画像/手动记录可能被其他页面更新了：回读一次最新的 preferredSports 与 records，让 React 重新渲染 + 聚合再算
+      const fresh = getManualProfile(getPageUserId_());
+      setProfile((prev) => ({
+        ...prev,
+        ...fresh,
+        // 保证数组是新引用，触发派生计算/子组件重新渲染
+        preferredSports: Array.isArray(fresh.preferredSports) ? fresh.preferredSports.slice() : [],
+        records: Array.isArray(fresh.records) ? fresh.records.slice() : [],
+      }));
+      // 2) AI 画像 tab：同时刷新训练总览/自动画像/远端数据
+      // 3) Settings tab：刷新 chat traits
+      // 注：用微任务延迟拿最新的 activeTab，避免事件跨页面导致的 closure 读取旧值
+      setTimeout(() => {
+        try {
+          // 直接读 localStorage 映射到的 state 不一定同步，用 setActiveTab(updater) 拿最新 activeTab
+          setActiveTab((cur) => {
+            if (cur === 'ai-profile') {
+              try { reloadAiProfileTab(); } catch (_e) { /* ignore */ }
+            } else if (cur === 'settings') {
+              try { refreshChatTraits(); } catch (_e) { /* ignore */ }
+            }
+            return cur;
+          });
+        } catch (_e) { /* ignore */ }
+      }, 0);
+    };
+    try {
+      window.addEventListener('user-profile:changed', handler);
+    } catch (_e) { /* SSR/旧浏览器兜底忽略 */ }
+    return () => {
+      try { window.removeEventListener('user-profile:changed', handler); } catch (_e) { /* ignore */ }
+    };
+  }, [reloadAiProfileTab, refreshChatTraits]);
 
   useEffect(() => {
     if (activeTab !== 'settings') return;
@@ -465,22 +512,23 @@ export default function ProfilePage() {
     }));
   };
 
+  // 状态记录 4 张卡：动作识别 × 手动记录 × AI 对话记住的偏好 三方聚合（与 AI 教练/评估页面联动实时更新）
+  const statusCards = aggregateStatusCards(getPageUserId_(), {
+    manualProfile: profile,
+    autoProfile: autoProfile || undefined,
+    trainingOverview: trainingOverview || undefined,
+    trainingRecords: aiRecords && aiRecords.length ? undefined : undefined, // 不传会自动走 getTrainingRecords，保证取到本地最新
+  });
+  const totalRecords = statusCards.totalRecords;
+  const preferredSportsList = statusCards.preferredSports;
+  const topSportEntry = statusCards.topSport ? [statusCards.topSport, statusCards.topSportCount] : null;
+  const topSport = topSportEntry;
+
   const tabs = [
-    { id: 'status', label: '状态记录' },
     { id: 'ai-profile', label: 'AI 画像' },
-    { id: 'chat-profile', label: '用户画像' },
     { id: 'goals', label: '目标管理' },
     { id: 'settings', label: '个人设置' },
   ];
-
-  // Stats
-  const totalRecords = profile.records.length;
-  const totalDuration = profile.records.reduce((sum, r) => sum + (parseInt(r.duration) || 0), 0);
-  const sportCount = {};
-  profile.records.forEach((r) => {
-    sportCount[r.sport] = (sportCount[r.sport] || 0) + 1;
-  });
-  const topSport = Object.entries(sportCount).sort((a, b) => b[1] - a[1])[0];
 
   return (
     <PageLayout
@@ -506,20 +554,18 @@ export default function ProfilePage() {
           ))}
         </div>
 
-        {/* Overview Tab */}
-        {activeTab === 'status' && (
+        {/* AI 画像（合并版：状态记录 + 训练数据 + 对话自动画像，与 AI 教练对话时数值实时同步） */}
+        {activeTab === 'ai-profile' && (
           <div className="profile-page__tab-content">
+
+            {/* ========== PART 1 · 状态记录（训练卡 / 今日状态 / 快速记录 / 手动记录） ========== */}
             <div className="profile-page__stats-grid">
               <div className="profile-page__stat-card">
                 <span className="profile-page__stat-value">{totalRecords}</span>
                 <span className="profile-page__stat-label">训练次数</span>
               </div>
               <div className="profile-page__stat-card">
-                <span className="profile-page__stat-value">{totalDuration}</span>
-                <span className="profile-page__stat-label">总时长 (分钟)</span>
-              </div>
-              <div className="profile-page__stat-card">
-                <span className="profile-page__stat-value">{profile.preferredSports.length}</span>
+                <span className="profile-page__stat-value">{preferredSportsList.length}</span>
                 <span className="profile-page__stat-label">偏好运动</span>
               </div>
               <div className="profile-page__stat-card">
@@ -618,82 +664,8 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
-          </div>
-        )}
 
-        {/* Records Tab */}
-        {false && activeTab === 'records' && (
-          <div className="profile-page__tab-content">
-            <div className="profile-page__section">
-              <h3 className="profile-page__section-title">添加新记录</h3>
-              <div className="profile-page__quick-add">
-                <select
-                  className="profile-page__input"
-                  value={newRecord.sport}
-                  onChange={(e) => setNewRecord((prev) => ({ ...prev, sport: e.target.value }))}
-                >
-                  <option value="">选择运动</option>
-                  {SPORTS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-                <input
-                  className="profile-page__input"
-                  type="number"
-                  placeholder="时长 (分钟)"
-                  value={newRecord.duration}
-                  onChange={(e) => setNewRecord((prev) => ({ ...prev, duration: e.target.value }))}
-                />
-                <input
-                  className="profile-page__input"
-                  placeholder="备注 (可选)"
-                  value={newRecord.notes}
-                  onChange={(e) => setNewRecord((prev) => ({ ...prev, notes: e.target.value }))}
-                />
-                <button className="profile-page__btn" onClick={addRecord}>
-                  添加记录
-                </button>
-              </div>
-            </div>
-
-            <div className="profile-page__section">
-              <h3 className="profile-page__section-title">全部记录 ({profile.records.length})</h3>
-              {profile.records.length === 0 ? (
-                <div className="profile-page__empty">
-                  <p>暂无训练记录，开始记录你的第一次训练吧！</p>
-                </div>
-              ) : (
-                <div className="profile-page__records-list">
-                  {profile.records.map((r) => (
-                    <div key={r.id} className="profile-page__record-card">
-                      <div className="profile-page__record-header">
-                        <span className="profile-page__record-sport">{r.sport}</span>
-                        <span className="profile-page__record-date">{r.date}</span>
-                      </div>
-                      <div className="profile-page__record-body">
-                        <span>{r.duration} 分钟</span>
-                        {r.notes && <span className="profile-page__record-notes">{r.notes}</span>}
-                        <span className="profile-page__record-mood">
-                          {MOOD_OPTIONS.find((m) => m.value === r.mood)?.emoji}
-                        </span>
-                      </div>
-                      <button
-                        className="profile-page__record-delete"
-                        onClick={() => deleteRecord(r.id)}
-                      >
-                        删除
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* AI Profile Tab */}
-        {activeTab === 'ai-profile' && (
-          <div className="profile-page__tab-content">
+            {/* ========== PART 2 · 训练数据（算法评估：总览 / 常犯毛病 / 摘要 / 得分曲线 / 历史） ========== */}
             {/* 训练数据总览：做了什么 / 做了多少 / 得分情况 */}
             <div className="profile-page__section">
               <h3 className="profile-page__section-title">训练数据总览</h3>
@@ -885,12 +857,8 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
-          </div>
-        )}
 
-        {/* Chat Auto Profile Tab（用户画像） */}
-        {activeTab === 'chat-profile' && (
-          <div className="profile-page__tab-content">
+            {/* ========== PART 3 · 对话自动画像（身份 / 爱好 / 目标 / 伤病 / 心情 / 事实 / 数据管理） ========== */}
             <div className="profile-page__section">
               <div className="chat-profile__header">
                 <div>

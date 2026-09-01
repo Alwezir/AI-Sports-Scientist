@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
-import { getOrCreateUserId, initUser, receiveAlgorithmJson } from '../utils/userProfile';
+import { getOrCreateUserId, initUser, receiveAlgorithmJson, emitProfileChanged } from '../utils/userProfile';
 import { addTrainRecord } from '../utils/profileApi';
 import './EvaluationPage.css';
 
@@ -647,7 +647,8 @@ export default function EvaluationPage() {
       per_rep_scores: perRepScores,
       per_rep_errors: perRepErrors,
     }).then(() => setProfileSyncStatus('本次训练记录已同步到运动画像'))
-      .catch(() => setProfileSyncStatus('本地记录已保存，画像服务暂时未连接'));
+      .catch(() => setProfileSyncStatus('本地记录已保存，画像服务暂时未连接'))
+      .finally(() => emitProfileChanged(userId));
   }, [analysisDone, scores, detectedErrors, videoFile]);
 
   const getScoreColor = (score) => {

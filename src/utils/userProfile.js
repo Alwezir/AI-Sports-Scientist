@@ -442,6 +442,114 @@ export function getRecentPerRepScores(userId, max = 30) {
   return tail.map((entry, idx) => ({ index: idx, ...entry }));
 }
 
+/**
+ * 画像页「状态记录 4 张卡」的统一聚合（动作识别 × 手动记录 × AI 对话记住的偏好，三者合并）。
+ * 保持数值与 AI 教练对话 / 动作评估 实时同步：
+ *  · totalRecords  — 算法训练段数 + 手动记录条数
+ *  · totalDuration — 算法段 Σ duration_sec/60 + 手动记录 Σ duration (分钟)
+ *  · preferredSports— (手动画像 preferredSports) ∪ (auto_profile.hobbies∩运动词) ∪ (action_types 里用户实际训练过的动作)
+ *  · topSport      — 综合频次最高的运动 / 动作类型（手动训练 + 算法训练合并统计）
+ *  · topSportCount — 最高频次（用于调试/meta 显示）
+ * @param {string} userId
+ * @param {object} [opts] { autoProfile?: object, manualProfile?: object, trainingOverview?: object, trainingRecords?: object[] }
+ */
+export function aggregateStatusCards(userId, opts = {}) {
+  const manual = opts.manualProfile || (typeof getManualProfile === 'function' ? getManualProfile(userId) : null);
+  const manualRecords = Array.isArray(manual && manual.records) ? manual.records : [];
+  const algoRecords = Array.isArray(opts.trainingRecords)
+    ? opts.trainingRecords
+    : (typeof getTrainingRecords === 'function' ? getTrainingRecords(userId) : []);
+  const overview = opts.trainingOverview || (typeof getTrainingOverview === 'function' ? getTrainingOverview(userId) : null);
+
+  // ---- 训练次数 & 总时长（算法 + 手动 合并） ----
+  let totalRecords = (overview && overview.totalRecords) || 0;
+  let totalDuration = 0;
+  for (const r of algoRecords) {
+    const sec = Number(r && r.duration_sec);
+    if (Number.isFinite(sec) && sec > 0) totalDuration += sec / 60;
+  }
+  totalRecords += manualRecords.length;
+  for (const r of manualRecords) {
+    const d = parseInt(r && r.duration, 10);
+    if (Number.isFinite(d) && d > 0) totalDuration += d;
+  }
+  totalDuration = Math.round(totalDuration);
+
+  // ---- 最常运动（合并算法 action_type + 手动 records.sport） ----
+  const sportCount = {};
+  if (overview && Array.isArray(overview.actionTypes)) {
+    for (const at of overview.actionTypes) {
+      if (!at || !at.name) continue;
+      sportCount[String(at.name)] = (sportCount[String(at.name)] || 0) + (at.count || 1);
+    }
+  }
+  for (const r of manualRecords) {
+    const n = r && r.sport;
+    if (!n) continue;
+    sportCount[String(n)] = (sportCount[String(n)] || 0) + 1;
+  }
+  const sorted = Object.entries(sportCount).sort((a, b) => b[1] - a[1]);
+  const topSport = sorted[0] ? sorted[0][0] : '';
+  const topSportCount = sorted[0] ? sorted[0][1] : 0;
+
+  // ---- 偏好运动（勾选项 + 对话爱好交集 + 真实练过动作 并集） ----
+  const prefSet = new Set();
+  if (manual && Array.isArray(manual.preferredSports)) {
+    for (const s of manual.preferredSports) if (s) prefSet.add(String(s));
+  }
+  // 来自 auto_profile.hobbies / trainingPreferences 的运动类关键词（允许调用方传入缓存好的 auto_profile 避免重复读）
+  const auto = opts.autoProfile || null;
+  if (auto) {
+    const SPORTY = new Set([
+      '跑步','篮球','足球','羽毛球','乒乓球','网球','游泳','骑行','自行车','登山','爬山','徒步',
+      '瑜伽','普拉提','拳击','格斗','泰拳','跆拳道','武术','滑雪','滑板','冲浪','跳绳','街舞','跳舞',
+      '健身','撸铁','力量举','CrossFit','壶铃','哑铃','器械','自重','户外','划船','高尔夫','排球','手球',
+      '深蹲','硬拉','卧推','臀推','臀桥','平板支撑','开合跳','箭步蹲','引体向上','俯卧撑','哑铃肩推',
+      '哑铃弯举','俯身哑铃划船','保加利亚分腿蹲','罗马尼亚硬拉'
+    ]);
+    if (Array.isArray(auto.hobbies)) {
+      for (const h of auto.hobbies) if (SPORTY.has(String(h))) prefSet.add(String(h));
+    }
+    if (Array.isArray(auto.trainingPreferences)) {
+      for (const p of auto.trainingPreferences) {
+        const key = String(p);
+        if (SPORTY.has(key)) prefSet.add(key);
+      }
+    }
+  }
+  // 真实练过的动作也要进入偏好集合（用户实际做过 = 偏好）
+  for (const name of Object.keys(sportCount)) prefSet.add(name);
+
+  const preferredSports = Array.from(prefSet);
+
+  return {
+    totalRecords,
+    totalDuration,
+    preferredSports,
+    topSport,
+    topSportCount,
+    breakdown: {
+      algoRecords: algoRecords.length,
+      manualRecords: manualRecords.length,
+    },
+  };
+}
+
+// 简易跨页面事件（动作评估完成 / AI 教练记住新信息后广播），避免引入全局 Context
+function canUseWindow() {
+  return typeof window !== 'undefined' && typeof window.dispatchEvent === 'function';
+}
+/**
+ * 广播「用户画像有变更」事件：动作评估/手动记录/AI 对话抽取后调用；
+ * ProfilePage 监听到后立即重算状态卡，用户无需手动刷新。
+ */
+export function emitProfileChanged(userId) {
+  if (!canUseWindow()) return;
+  try {
+    window.dispatchEvent(new CustomEvent('user-profile:changed', { detail: { userId: userId || '', at: Date.now() } }));
+  } catch { /* ignore */ }
+}
+
 // ========== 手动训练/目标/个人信息（原 dongzhi_profile 合并后统一门面） ==========
 
 /**
@@ -520,6 +628,31 @@ export function deleteManualRecord(userId, recordId) {
   const nextRecords = cur.records.filter((r) => String(r.id) !== String(recordId));
   saveManualProfile(userId, { ...cur, records: nextRecords });
   return nextRecords;
+}
+
+/**
+ * 合并式更新手动画像个别字段（用于 AI 对话记住的信息反向回灌，不覆盖其他字段）
+ * 接受：{ name?, goal?, level?, weeklyFrequency?, preferredSports?: 追加|全量覆盖两种模式,
+ *         mood?, records? }
+ * - opts.mergePreferredSports = true 时，把传入 preferredSports 合并到集合而非覆盖
+ */
+export function patchManualProfile(userId, patch, opts = {}) {
+  if (!patch || typeof patch !== 'object') return getManualProfile(userId);
+  const cur = getManualProfile(userId);
+  const merged = { ...cur };
+  const keys = ['name', 'goal', 'level', 'weeklyFrequency', 'mood', 'records'];
+  for (const k of keys) if (patch[k] !== undefined) merged[k] = patch[k];
+  if (Array.isArray(patch.preferredSports)) {
+    if (opts.mergePreferredSports) {
+      const set = new Set([...(cur.preferredSports || [])]);
+      for (const s of patch.preferredSports) if (s) set.add(String(s));
+      merged.preferredSports = Array.from(set);
+    } else {
+      merged.preferredSports = patch.preferredSports.slice();
+    }
+  }
+  saveManualProfile(userId, merged);
+  return getManualProfile(userId);
 }
 
 /**

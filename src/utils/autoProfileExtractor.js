@@ -26,6 +26,25 @@ import { extractTextFromMessage, detectEmotion } from './coach/userProfileChat.j
 
 const STORAGE_KEY = 'dongzhi_user_data';
 
+// 从统一 userProfile 门面读训练概览/记录（动态 import 避免模块循环）
+async function lazyGetTrainingStats(userId) {
+  try {
+    const mod = await import('./userProfile.js');
+    const overview = typeof mod.getTrainingOverview === 'function'
+      ? mod.getTrainingOverview(userId)
+      : null;
+    const recent = typeof mod.getRecentPerRepScores === 'function'
+      ? mod.getRecentPerRepScores(userId, 30)
+      : [];
+    const errors = typeof mod.getRecurringErrors === 'function'
+      ? mod.getRecurringErrors(userId, 1)
+      : [];
+    return { overview, recent, errors };
+  } catch {
+    return { overview: null, recent: [], errors: [] };
+  }
+}
+
 const DEFAULT_AUTO_PROFILE = () => ({
   name: '',                 // 真实姓名（用户说"我叫张三"）
   nickname: '',             // 昵称/称呼（"叫我小张就行"）
@@ -40,6 +59,19 @@ const DEFAULT_AUTO_PROFILE = () => ({
   keywords: [],             // 高频关注关键词：臀推/硬拉/跑步呼吸/半月板
   emotionLog: [],           // 心情起伏日志（最多 60 条）
   knownFacts: [],           // 已确认的事实（{fact, source, updatedAt}）
+  // 训练状态数值（与“状态记录” tab 保持同步，由 syncTrainingStatsToAutoProfile / sentinel 末尾维护）
+  stats: {
+    totalRecords: 0,       // 算法训练段数
+    totalReps: 0,          // 算法总动作次数
+    avgScore: null,        // 平均评分
+    latestScore: null,     // 最近一次动作得分
+    latestDate: '',        // 最近一次评估日期
+    scoreRangeMin: null,   // 逐动作得分最低
+    scoreRangeMax: null,   // 逐动作得分最高
+    actionTypes: [],       // 动作类型分布 [{name, count}]
+    topErrors: [],         // 反复犯的毛病 [{name, severity, total}]
+    updatedAt: null,       // 最近一次 stats 更新时间
+  },
   updatedAt: null,          // 最近一次画像更新时间
   extractionCount: 0,       // 抽取统计：触发过多少次，便于调试/置信度
 });
@@ -100,7 +132,21 @@ function ensureShape(userId) {
     const base = DEFAULT_AUTO_PROFILE();
     for (const k of Object.keys(base)) {
       if (!(k in doc.auto_profile)) {
-        doc.auto_profile[k] = base[k];
+        // stats 等对象字段需要深拷贝一份默认值，避免所有用户共享引用
+        doc.auto_profile[k] = typeof base[k] === 'object' && base[k] !== null
+          ? JSON.parse(JSON.stringify(base[k]))
+          : base[k];
+      }
+    }
+    // stats 对象字段补齐（向前兼容老数据，确保每个子键都有默认）
+    if (typeof doc.auto_profile.stats !== 'object' || doc.auto_profile.stats === null) {
+      doc.auto_profile.stats = JSON.parse(JSON.stringify(base.stats));
+    } else {
+      const baseStats = base.stats;
+      for (const k of Object.keys(baseStats)) {
+        if (!(k in doc.auto_profile.stats)) {
+          doc.auto_profile.stats[k] = JSON.parse(JSON.stringify(baseStats[k]));
+        }
       }
     }
     if (!Array.isArray(doc.auto_profile.hobbies)) doc.auto_profile.hobbies = [];
@@ -110,6 +156,8 @@ function ensureShape(userId) {
     if (!Array.isArray(doc.auto_profile.keywords)) doc.auto_profile.keywords = [];
     if (!Array.isArray(doc.auto_profile.emotionLog)) doc.auto_profile.emotionLog = [];
     if (!Array.isArray(doc.auto_profile.knownFacts)) doc.auto_profile.knownFacts = [];
+    if (!Array.isArray(doc.auto_profile.stats.actionTypes)) doc.auto_profile.stats.actionTypes = [];
+    if (!Array.isArray(doc.auto_profile.stats.topErrors)) doc.auto_profile.stats.topErrors = [];
     if (!Number.isFinite(doc.auto_profile.extractionCount)) doc.auto_profile.extractionCount = 0;
   }
   writeAll(all);
@@ -347,6 +395,37 @@ function applyAutoProfilePatch(userId, patch, source = 'auto_extract') {
         while (ap.emotionLog.length > 60) ap.emotionLog.shift();
         changes.push({ field: 'emotion', value: `${ev.label}${ev.keyword ? '(' + ev.keyword + ')' : ''}` });
       }
+    } else if (k === 'stats') {
+      // stats：训练状态整体替换（对象字段合并式写入）
+      if (v && typeof v === 'object') {
+        const before = JSON.stringify(ap.stats);
+        ap.stats = {
+          ...JSON.parse(JSON.stringify(DEFAULT_AUTO_PROFILE().stats)),
+          ...ap.stats,
+          ...v,
+          updatedAt: new Date().toISOString(),
+        };
+        const after = JSON.stringify(ap.stats);
+        if (before !== after) {
+          changes.push({ field: 'stats', value: `段数 ${ap.stats.totalRecords} / 均分 ${ap.stats.avgScore ?? '-'}` });
+          // 动作类型与常犯毛病同步进 knownFacts 作为事实摘要（最多写一次，不重复）
+          if (Array.isArray(ap.stats.actionTypes) && ap.stats.actionTypes.length > 0) {
+            pushFact(
+              ap.knownFacts,
+              `动作类型分布：${ap.stats.actionTypes.map((x) => `${x.name}×${x.count}`).join('、')}`,
+              'stats_sync',
+            );
+          }
+          if (Array.isArray(ap.stats.topErrors) && ap.stats.topErrors.length > 0) {
+            const top3 = ap.stats.topErrors.slice(0, 3);
+            pushFact(
+              ap.knownFacts,
+              `常犯动作毛病 Top：${top3.map((x) => `${x.name}(${x.severity})`).join('、')}`,
+              'stats_sync',
+            );
+          }
+        }
+      }
     } else {
       if (typeof v === 'string') {
         const s = v.trim();
@@ -392,6 +471,47 @@ export function resetAutoProfile(userId) {
 export function updateAutoProfileField(userId, field, value) {
   if (!userId) userId = getOrCreateUserId();
   return applyAutoProfilePatch(userId, { [field]: value }, 'manual_edit');
+}
+
+// ---------- 对外：把训练状态（getTrainingOverview/recentScores/errors）同步进 auto_profile.stats ----------
+// 返回 applyAutoProfilePatch 结果：{ changed, changes, profile }
+export function syncTrainingStatsToAutoProfile(userId, training) {
+  if (!userId) userId = getOrCreateUserId();
+  const t = training || {};
+  const overview = t.overview || null;
+  const recent = Array.isArray(t.recent) ? t.recent : [];
+  const errors = Array.isArray(t.errors) ? t.errors : [];
+
+  const scoreRangeMin = recent.length > 0 ? Math.min(...recent.map((d) => d.score)) : null;
+  const scoreRangeMax = recent.length > 0 ? Math.max(...recent.map((d) => d.score)) : null;
+  const latest = recent.length > 0 ? recent[recent.length - 1] : null;
+
+  const stats = {
+    totalRecords: overview && Number.isFinite(overview.totalRecords) ? overview.totalRecords : 0,
+    totalReps: overview && Number.isFinite(overview.totalReps) ? overview.totalReps : 0,
+    avgScore: overview && overview.avgScore !== null && overview.avgScore !== undefined ? overview.avgScore : null,
+    latestScore: latest ? latest.score : null,
+    latestDate:
+      (latest && (latest.date || latest.timestamp)) ||
+      (overview && overview.latestDate) ||
+      '',
+    scoreRangeMin,
+    scoreRangeMax,
+    actionTypes: Array.isArray(overview && overview.actionTypes) ? overview.actionTypes.slice(0, 10) : [],
+    topErrors: errors
+      .slice(0, 6)
+      .map((e) => ({ name: e.name, severity: e.severity || '轻度', total: Number.isFinite(e.total) ? e.total : 0 })),
+    updatedAt: new Date().toISOString(),
+  };
+
+  return applyAutoProfilePatch(userId, { stats }, 'training_sync');
+}
+
+// ---------- 异步便捷版：无需调用方先读 userProfile，自己 lazy 拉取后再写 ----------
+// 不阻塞调用链（用于 ChatPage sentinel 后“顺手同步”），返回 Promise<result>
+export async function syncTrainingStatsToAutoProfileLazy(userId) {
+  const { overview, recent, errors } = await lazyGetTrainingStats(userId || getOrCreateUserId());
+  return syncTrainingStatsToAutoProfile(userId, { overview, recent, errors });
 }
 
 // ---------- 抽取 sentinel：每次对话轮次后调用 ----------

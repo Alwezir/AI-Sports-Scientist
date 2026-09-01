@@ -5,10 +5,12 @@ import {
   initUser,
   analyzeAndSaveTraitsFromTurn,
   generateTraitPromptContext,
+  patchManualProfile,
+  emitProfileChanged,
 } from '../utils/userProfile';
 import { getProfileSummary, getCoachConfig } from '../utils/profileApi';
 import { respond as coachRespond, resetSessionProfile } from '../utils/coach/coachEngine.js';
-import { sentinelExtractFromTurn } from '../utils/autoProfileExtractor.js';
+import { sentinelExtractFromTurn, syncTrainingStatsToAutoProfileLazy } from '../utils/autoProfileExtractor.js';
 import PixelBlast from '../components/PixelBlast';
 import LineSidebar from '../components/LineSidebar/LineSidebar';
 import useFinePointer from '../hooks/useFinePointer';
@@ -236,6 +238,29 @@ export default function ChatPage() {
           const text = `🧠 画像已更新：${parts.join(' / ')}${sentinelResult.changes.length > parts.length ? ' 等' + sentinelResult.changes.length + '项' : ''}`;
           setProfileExtractNotice({ text });
         }
+        // 顺手把训练数值也同步进 AI 画像（段数/均分/最近得分/常犯毛病…），不阻塞主流程
+        try { syncTrainingStatsToAutoProfileLazy(uid); } catch (_err) { /* ignore */ }
+        // 反向回灌：AI 对话里新识别到的爱好/训练偏好 合并进手动画像的"偏好运动"，让状态卡/目标管理能看见
+        try {
+          const changed = Array.isArray(sentinelResult?.changes) ? sentinelResult.changes : [];
+          const picks = [];
+          for (const c of changed) {
+            if (c.field === 'hobbies' && Array.isArray(c.value)) picks.push(...c.value.map(String));
+            else if (c.field === 'trainingPreferences' && Array.isArray(c.value)) picks.push(...c.value.map(String));
+          }
+          if (picks.length) {
+            const SPORTY = new Set([
+              '跑步','篮球','足球','羽毛球','乒乓球','网球','游泳','骑行','自行车','登山','爬山','徒步',
+              '瑜伽','普拉提','拳击','格斗','泰拳','跆拳道','武术','滑雪','滑板','冲浪','跳绳','街舞','跳舞',
+              '健身','撸铁','力量举','CrossFit','壶铃','哑铃','器械','自重','户外','划船','高尔夫','排球','手球',
+              '深蹲','硬拉','卧推','臀推','臀桥','平板支撑','开合跳','箭步蹲','引体向上','俯卧撑','哑铃肩推',
+              '哑铃弯举','俯身哑铃划船','保加利亚分腿蹲','罗马尼亚硬拉'
+            ]);
+            const pref = picks.filter((x) => SPORTY.has(x));
+            if (pref.length) patchManualProfile(uid, { preferredSports: pref }, { mergePreferredSports: true });
+          }
+        } catch (_e) { /* ignore */ }
+        emitProfileChanged(uid);
       } catch (e) {
         // 画像抽取失败不影响正常对话
         console.warn('[ChatPage] sentinel extract error:', e);
