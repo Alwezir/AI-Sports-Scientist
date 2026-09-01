@@ -3,9 +3,11 @@ import ScrollFloat from './ScrollFloat/ScrollFloat';
 import useResponsiveScrollFloat from '../hooks/useResponsiveScrollFloat';
 import './Footer.css';
 
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, '');
+
 const team = [
   { role: '算法', name: '潘阳', desc: 'MediaPipe / 评估核心' },
-  { role: '前端+UI', name: '韦恩泽', desc: 'H5 四页 / 肌肉图谱 / 适配 / 演示视频' },
+  { role: '前端+UI', name: '韦恩泽', desc: 'H5 四页 / 肌肉图谱 / 适配' },
   { role: '平台+对话编排', name: '许婉莹', desc: '画像机制 / 意图路由 / 工作流' },
   { role: '测试评估', name: '康芊芊', desc: '测试用例 / 画像准确度 / 文档' },
   { role: '知识库内容', name: '赵雅鑫', desc: '文献整理 / 知识库构建 / 用户画像' },
@@ -123,33 +125,14 @@ export default function Footer() {
               <div className="footer__info">
                 <div className="footer__qr">
                   <div className="footer__qr-box">
-                    <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
-                      <rect width="120" height="120" rx="12" fill="#111122" />
-                      <rect x="15" y="15" width="30" height="30" rx="4" fill="#00d4ff" opacity="0.8" />
-                      <rect x="75" y="15" width="30" height="30" rx="4" fill="#00d4ff" opacity="0.8" />
-                      <rect x="15" y="75" width="30" height="30" rx="4" fill="#00d4ff" opacity="0.8" />
-                      <rect x="21" y="21" width="18" height="18" rx="2" fill="#06060e" />
-                      <rect x="81" y="21" width="18" height="18" rx="2" fill="#06060e" />
-                      <rect x="21" y="81" width="18" height="18" rx="2" fill="#06060e" />
-                      <rect x="25" y="25" width="10" height="10" rx="1" fill="#00d4ff" />
-                      <rect x="85" y="25" width="10" height="10" rx="1" fill="#00d4ff" />
-                      <rect x="25" y="85" width="10" height="10" rx="1" fill="#00d4ff" />
-                      <rect x="55" y="15" width="8" height="8" rx="1" fill="#7c3aed" opacity="0.6" />
-                      <rect x="55" y="30" width="8" height="8" rx="1" fill="#7c3aed" opacity="0.6" />
-                      <rect x="55" y="55" width="8" height="8" rx="1" fill="#00d4ff" opacity="0.4" />
-                      <rect x="70" y="55" width="8" height="8" rx="1" fill="#7c3aed" opacity="0.4" />
-                      <rect x="85" y="55" width="8" height="8" rx="1" fill="#00d4ff" opacity="0.4" />
-                      <rect x="55" y="70" width="8" height="8" rx="1" fill="#7c3aed" opacity="0.4" />
-                      <rect x="70" y="70" width="8" height="8" rx="1" fill="#00d4ff" opacity="0.4" />
-                      <rect x="85" y="70" width="8" height="8" rx="1" fill="#7c3aed" opacity="0.4" />
-                      <rect x="55" y="85" width="8" height="8" rx="1" fill="#00d4ff" opacity="0.4" />
-                      <rect x="70" y="85" width="8" height="8" rx="1" fill="#7c3aed" opacity="0.4" />
-                      <rect x="85" y="85" width="8" height="8" rx="1" fill="#00d4ff" opacity="0.4" />
-                      <rect x="55" y="100" width="8" height="8" rx="1" fill="#7c3aed" opacity="0.3" />
-                      <rect x="70" y="100" width="8" height="8" rx="1" fill="#00d4ff" opacity="0.3" />
-                      <rect x="85" y="100" width="8" height="8" rx="1" fill="#7c3aed" opacity="0.3" />
-                      <text x="60" y="63" textAnchor="middle" fill="#00d4ff" fontSize="10" fontWeight="700">动知</text>
-                    </svg>
+                    <img
+                      src={BASE + '/experience-qrcode.png'}
+                      alt="扫码在线体验"
+                      width="120"
+                      height="120"
+                      loading="lazy"
+                      style={{ display: 'block', borderRadius: 12, background: '#fff' }}
+                    />
                   </div>
                   <p className="footer__qr-label">扫码在线体验</p>
                 </div>
