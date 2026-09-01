@@ -549,6 +549,64 @@ export function resetManualProfile(userId) {
   }
 }
 
+/**
+ * 清除该用户的全部数据（"数据管理 → 清除所有数据"按钮用）
+ * 覆盖范围：
+ *   - 手动画像（manual_profile）+ 手动训练记录（manual_records）
+ *   - 算法训练记录（training_record）
+ *   - 对话特点抽取（chat_traits）
+ *   - 自动画像（auto_profile：name/nickname/occupation/hobbies/goals/…/emotionLog/knownFacts）
+ *   - 老版 schema 字段（action_habit / emotion_motivation / stage_target / coach_style）
+ *   - 旧版 dongzhi_profile 迁移标记
+ * 只保留 user_id / nickname(空) / created_at，其他全部置为初始默认值。
+ * 调用方需额外负责：
+ *   - 清 dongzhi_chat_sessions（ChatPage 的多会话存储，独立 key）
+ *   - 调 coachEngine.resetSessionProfile()（教练引擎会话缓存）
+ */
+export function resetAllUserData(userId) {
+  const allData = getAllData();
+  if (!(userId in allData)) {
+    // 用户不存在，直接建一份干净的文档即可
+    initUser(userId, '');
+    return;
+  }
+
+  const old = allData[userId];
+  const freshDoc = {
+    user_id: userId,
+    nickname: '',
+    coach_style: '',
+    created_at: old.created_at || new Date().toISOString(),
+    last_updated: new Date().toISOString(),
+    training_record: [],
+    action_habit: [],
+    emotion_motivation: [],
+    stage_target: [],
+    chat_traits: {},
+    manual_profile: {
+      name: DEFAULT_MANUAL_PROFILE.name,
+      goal: DEFAULT_MANUAL_PROFILE.goal,
+      level: DEFAULT_MANUAL_PROFILE.level,
+      weeklyFrequency: DEFAULT_MANUAL_PROFILE.weeklyFrequency,
+      preferredSports: DEFAULT_MANUAL_PROFILE.preferredSports.slice(),
+      mood: DEFAULT_MANUAL_PROFILE.mood,
+    },
+    manual_records: [],
+    // auto_profile 的默认结构由 autoProfileExtractor.ensureShape 来补齐，
+    // 这里先显式置空，确保下次读取一定触发重建，避免残留字段
+    auto_profile: null,
+  };
+
+  allData[userId] = freshDoc;
+  saveAllData(allData);
+
+  try {
+    localStorage.removeItem(OLD_MANUAL_STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 // ========== 对话中记住用户特点（对接 AI 教练对话） ==========
 
 /**

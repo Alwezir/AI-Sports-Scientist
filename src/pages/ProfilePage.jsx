@@ -15,6 +15,7 @@ import {
   getManualProfile,
   saveManualProfile,
   resetManualProfile,
+  resetAllUserData,
 } from '../utils/userProfile';
 import {
   addGoal,
@@ -25,6 +26,7 @@ import {
   normalizeRemoteProfile,
 } from '../utils/profileApi';
 import { getInitialProfileApiStatus } from '../utils/profileStatus';
+import { resetSessionProfile } from '../utils/coach/coachEngine.js';
 import {
   loadAutoProfile,
   resetAutoProfile,
@@ -1284,14 +1286,36 @@ export default function ProfilePage() {
                 <button
                   className="profile-page__btn profile-page__btn--danger"
                   onClick={() => {
-                    if (window.confirm('确定要清除所有数据吗？此操作不可恢复。')) {
-                      try {
-                        resetManualProfile(getPageUserId_());
-                      } catch {
-                        /* ignore */
-                      }
+                    if (!window.confirm(
+                      '确定要清除所有数据吗？\n\n包括：\n- 手动画像 + 手动训练记录\n- 算法评估记录与得分曲线\n- 对话抽取的画像/特点/心情日志\n- AI 教练会话历史\n\n此操作不可恢复。'
+                    )) return;
+                    try {
+                      const uid = getPageUserId_();
+                      // 1) 清 dongzhi_user_data 下全部数据（manual/training/chat_traits/auto_profile…）
+                      resetAllUserData(uid);
+                      // 2) 清 ChatPage 的多会话历史（独立 key）
+                      try { localStorage.removeItem('dongzhi_chat_sessions'); } catch (_e) { /* ignore */ }
+                      // 3) 清教练引擎的内存会话画像缓存
+                      try { resetSessionProfile(); } catch (_e) { /* ignore */ }
+                      // 4) 重置所有本地 React state，让 UI 立刻全部清空
                       setProfile({ ...defaultProfile });
+                      setNewRecord({ sport: '', duration: '', notes: '' });
+                      setAiSummary('');
+                      setAiRecords([]);
+                      setTrainingOverview(getTrainingOverview(uid));
+                      setRecurringErrors(getRecurringErrors(uid));
+                      setRecentScores(getRecentPerRepScores(uid));
+                      setChatTraits(getUserChatTraits(uid));
+                      try { setAutoProfile(loadAutoProfile(uid)); } catch (_e) { setAutoProfile(null); }
+                      setAutoDraft({});
+                      setAutoListDraft({});
+                      setProfileApiStatus(getInitialProfileApiStatus());
+                    } catch (e) {
+                      console.warn('[ProfilePage] reset all user data failed:', e);
+                      window.alert('清除数据时出现异常，详见控制台日志。');
+                      return;
                     }
+                    window.alert('✅ 所有数据已清除。请刷新页面或前往 AI 教练页重新体验～');
                   }}
                 >
                   清除所有数据
