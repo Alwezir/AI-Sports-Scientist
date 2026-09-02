@@ -70,9 +70,18 @@ export function useSpecular(containerRef, fxRef, options = {}) {
     const fx = fxRef.current;
     if (!container || !fx) return;
 
-    const dpr = window.devicePixelRatio || 1;
-    const renderer = new Renderer({ alpha: true, premultipliedAlpha: true, antialias: true, dpr });
+    // 限制 DPR 避免高分辨率手机过度渲染导致卡顿
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    let renderer;
+    try {
+      renderer = new Renderer({ alpha: true, premultipliedAlpha: true, antialias: true, dpr });
+    } catch {
+      // WebGL2 不可用时静默退出，按钮 CSS 自带兜底样式
+      return;
+    }
     const gl = renderer.gl;
+    if (!gl) return;
     gl.clearColor(0, 0, 0, 0);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
@@ -143,6 +152,8 @@ export function useSpecular(containerRef, fxRef, options = {}) {
     let bright = 0;
     let last = performance.now();
     let raf = 0;
+    let isVisible = false;
+    let isPageVisible = !document.hidden;
 
     const lineC = new Color();
     const baseC = new Color();
@@ -174,10 +185,42 @@ export function useSpecular(containerRef, fxRef, options = {}) {
       program.uniforms.uThickness.value = p.thickness * dpr;
       renderer.render({ scene: mesh });
     };
-    raf = requestAnimationFrame(update);
+
+    const tryStart = () => {
+      if (isVisible && isPageVisible && raf === 0) {
+        last = performance.now();
+        raf = requestAnimationFrame(update);
+      }
+    };
+    const tryStop = () => {
+      if (raf !== 0) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+    };
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+        isVisible ? tryStart() : tryStop();
+      },
+      { threshold: 0 }
+    );
+    io.observe(container);
+
+    const onVisibility = () => {
+      isPageVisible = !document.hidden;
+      isPageVisible ? tryStart() : tryStop();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    isVisible = true;
+    tryStart();
 
     return () => {
-      cancelAnimationFrame(raf);
+      tryStop();
+      io.disconnect();
+      document.removeEventListener('visibilitychange', onVisibility);
       ro.disconnect();
       window.removeEventListener('pointermove', onPointerMove);
       if (gl.canvas.parentNode === fx) fx.removeChild(gl.canvas);

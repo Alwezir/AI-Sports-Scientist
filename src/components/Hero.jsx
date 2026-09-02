@@ -2,13 +2,13 @@ import { useEffect, useRef, useCallback } from 'react';
 import MagicRings from './MagicRings';
 import SpecularButton from './SpecularButton/SpecularButton';
 import StrokeText from './StrokeText/StrokeText';
-import useFinePointer from '../hooks/useFinePointer';
 import useResponsiveStrokeText from '../hooks/useResponsiveStrokeText';
 import './Hero.css';
 
 export default function Hero() {
   const canvasRef = useRef(null);
-  const isFinePointer = useFinePointer();
+  // 移动端也使用与桌面端一致的 Hero（MagicRings + StrokeText + SpecularButton）
+  const isFinePointer = true;
   const strokeCfg = useResponsiveStrokeText();
 
   const scrollToSection = useCallback((e, sectionId) => {
